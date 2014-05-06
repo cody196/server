@@ -1,0 +1,3 @@
+[submodule "uhttpsharp"]
+  path = Vendor/uHttpSharp
+  url = http://tohjo.ez.lv/citidev/uhttpsharp.git
