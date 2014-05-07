@@ -19,6 +19,12 @@ namespace CitizenMP.Server.Game
         private byte[] m_receiveBuffer;
 
         private Client m_host;
+        public bool UseAsync { get; set; }
+
+        public GameServer()
+        {
+            UseAsync = true;
+        }
 
         public void Start()
         {
@@ -31,17 +37,20 @@ namespace CitizenMP.Server.Game
 
             m_receiveBuffer = new byte[2048];
 
-            /*m_asyncEventArgs = new SocketAsyncEventArgs();
-            m_asyncEventArgs.SetBuffer(m_receiveBuffer, 0, m_receiveBuffer.Length);
-
-            m_asyncEventArgs.RemoteEndPoint = new IPEndPoint(IPAddress.None, 0);
-
-            m_asyncEventArgs.Completed += m_asyncEventArgs_Completed;
-
-            if (!m_gameSocket.ReceiveFromAsync(m_asyncEventArgs))
+            if (UseAsync)
             {
-                m_asyncEventArgs_Completed(this, m_asyncEventArgs);
-            }*/
+                m_asyncEventArgs = new SocketAsyncEventArgs();
+                m_asyncEventArgs.SetBuffer(m_receiveBuffer, 0, m_receiveBuffer.Length);
+
+                m_asyncEventArgs.RemoteEndPoint = new IPEndPoint(IPAddress.None, 0);
+
+                m_asyncEventArgs.Completed += m_asyncEventArgs_Completed;
+
+                if (!m_gameSocket.ReceiveFromAsync(m_asyncEventArgs))
+                {
+                    m_asyncEventArgs_Completed(this, m_asyncEventArgs);
+                }
+            }
         }
 
         void ProcessOOB(IPEndPoint remoteEP, byte[] buffer, int length)
@@ -363,32 +372,35 @@ namespace CitizenMP.Server.Game
 
         public void Tick(int msec)
         {
-            // network reception
-            EndPoint receiveEP = new IPEndPoint(IPAddress.None, 0);
-
-            while (true)
+            if (!UseAsync)
             {
-                try
-                {
-                    int length = m_gameSocket.ReceiveFrom(m_receiveBuffer, ref receiveEP);
+                // network reception
+                EndPoint receiveEP = new IPEndPoint(IPAddress.None, 0);
 
-                    if (length > 0)
+                while (true)
+                {
+                    try
                     {
-                        ProcessIncomingPacket(m_receiveBuffer, length, (IPEndPoint)receiveEP);
+                        int length = m_gameSocket.ReceiveFrom(m_receiveBuffer, ref receiveEP);
+
+                        if (length > 0)
+                        {
+                            ProcessIncomingPacket(m_receiveBuffer, length, (IPEndPoint)receiveEP);
+                        }
+                        else
+                        {
+                            break;
+                        }
                     }
-                    else
+                    catch (SocketException e)
                     {
+                        if (e.SocketErrorCode != SocketError.WouldBlock)
+                        {
+                            this.Log().Warn("socket error {0}", e.Message);
+                        }
+
                         break;
                     }
-                }
-                catch (SocketException e)
-                {
-                    if (e.SocketErrorCode != SocketError.WouldBlock)
-                    {
-                        this.Log().Warn("socket error {0}", e.Message);
-                    }
-
-                    break;
                 }
             }
 

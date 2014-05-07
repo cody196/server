@@ -18,7 +18,7 @@ namespace CitizenMP.Server.HTTP
                 var result = new JObject();
 
                 var files = new JObject();
-                files["resource.rpf"] = "3FF30849558B431E4DA093BA10D62BFACDBC9ED2";
+                files["resource.rpf"] = "4B5511AA0F088F4C98C8BB56932DEF90D80E76C2";
 
                 var lovely = new JObject();
                 lovely["name"] = "lovely";
