@@ -1,12 +1,3 @@
-local ffi = require('ffi')
-
-ffi.cdef[[
-typedef struct networkGameConfig_s
-{
-	int data[0x1E];
-} networkGameConfig;
-]]
-
 local function launchGame()
 	-- TODO: replace with the actual game mode the joined session is running
 	--StartResource('citizen')
@@ -18,9 +9,9 @@ end
 local function showError(err)
 	ForceLoadingScreen(0)
 	SetMsgForLoadingScreen(err)
-	
+
 	echo(err .. "\n")
-	
+
 	return "exit"
 end
 
@@ -30,14 +21,10 @@ CreateThread(function()
 	AllowThisScriptToBePaused(false)
 	SetNoResprays(false)
 	ThisScriptIsSafeForNetworkGame()
-	
+
 	if IsPlayerPlaying(GetPlayerIndex()) then
 		SetPlayerControl(GetPlayerIndex(), false)
 	end
-	
-	-- load game config as stored by the SP script
-	local mem = ffi.new("networkGameConfig")
-	NetworkRestoreGameConfig(mem)
 
 	-- setup default callbacks
 	exports.session:reset()
@@ -68,7 +55,7 @@ CreateThread(function()
 	local curJoinSession = 0
 
 	local joinFailed = function()
-		exports.session:hostSession(mem.data[1], mem.data[3])
+		exports.session:hostSession(16, 32)
 	end
 
 	AddEventHandler('sessionJoinFailed', function()
@@ -87,12 +74,12 @@ CreateThread(function()
 			joinFailed()
 			return
 		end
-		
+
 		sessionList = sessions
 
 		curJoinSession = 1
 		exports.session:joinSession(sessionList[curJoinSession])
 	end)
 
-	exports.session:findSessions(mem.data[1])
+	exports.session:findSessions(16)
 end)
