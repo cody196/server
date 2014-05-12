@@ -1,0 +1,10 @@
+info:
+    description: a piece of cake
+    version: 1.0
+
+dependencies:
+    - session
+    - initial
+
+scripts:
+    - init.lua

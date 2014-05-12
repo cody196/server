@@ -1,0 +1,10 @@
+info:
+    description: manages spawns
+
+scripts:
+    - spawnmanager.lua
+
+exports:
+    - loadSpawns
+    - disableSpawning
+    - enableSpawning

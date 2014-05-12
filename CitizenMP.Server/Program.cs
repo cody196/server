@@ -11,8 +11,18 @@ namespace CitizenMP.Server
     {
         private void Start()
         {
+            /*var res = new Resources.Resource("lovely", @"S:\Games\Steam\steamapps\common\grand theft auto iv\GTAIV\citizen\lovely");
+            res.Parse();
+            res.Start();*/
+
+            var resManager = new Resources.ResourceManager();
+            resManager.ScanResources("resources/");
+
+            resManager.GetResource("gameInit").Start();
+            resManager.GetResource("lovely").Start();
+
             // initialize the HTTP server
-            var httpServer = new HTTP.HttpServer();
+            var httpServer = new HTTP.HttpServer(resManager);
             httpServer.Start();
 
             // and the game server

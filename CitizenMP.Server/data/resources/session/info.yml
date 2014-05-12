@@ -1,0 +1,16 @@
+info:
+    description: global session finding/joining/hosting code
+
+exports:
+    - reset
+    - findSessions
+    - joinSession
+    - hostSession
+    - serviceHostStuff
+    
+scripts:
+    - session_manager.lua
+    - leavehandler.lua
+    - starthandler.lua
+    - joinhandler.lua
+    - spawnmanager.lua

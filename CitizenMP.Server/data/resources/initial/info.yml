@@ -1,0 +1,8 @@
+info:
+    description: initialization code for network sessions
+
+dependencies:
+    - session
+
+scripts:
+    - net_init.lua

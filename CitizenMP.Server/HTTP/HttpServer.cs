@@ -20,12 +20,16 @@ namespace CitizenMP.Server.HTTP
     {
         private Dictionary<string, Func<IHttpHeaders, JObject>> m_handlers;
 
-        public HttpServer()
+        private Resources.ResourceManager m_resourceManager;
+
+        public HttpServer(Resources.ResourceManager resManager)
         {
+            m_resourceManager = resManager;
+
             m_handlers = new Dictionary<string, Func<IHttpHeaders, JObject>>();
 
             m_handlers["initconnect"] = InitConnectMethod.Get();
-            m_handlers["getconfiguration"] = GetConfigurationMethod.Get();
+            m_handlers["getconfiguration"] = GetConfigurationMethod.Get(resManager);
         }
 
         public void Start()
@@ -69,6 +73,25 @@ namespace CitizenMP.Server.HTTP
                 }
 
                 context.Response = new HttpResponse(responseCode, "application/json", result.ToString(), true);
+
+                return Task.Factory.GetCompleted();
+            })).With("files", new AnonymousHttpRequestHandler((context, next) =>
+            {
+                var urlParts = context.Request.Uri.OriginalString.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+
+                if (urlParts.Length >= 3)
+                {
+                    var resourceName = urlParts[1];
+                    var resource = m_resourceManager.GetResource(resourceName);
+
+                    if (resource != null)
+                    {
+                        if (urlParts[2] == "resource.rpf")
+                        {
+                            context.Response = new HttpResponse(HttpResponseCode.Ok, "application/x-rockstar-rpf", resource.OpenClientPackage(), true);
+                        }
+                    }
+                }
 
                 return Task.Factory.GetCompleted();
             })));
