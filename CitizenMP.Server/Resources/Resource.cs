@@ -26,6 +26,8 @@ namespace CitizenMP.Server.Resources
 
         public string ClientPackageHash { get; private set; }
 
+        private FileSystemWatcher m_watcher;
+
         public Resource(string name, string path)
         {
             Name = name;
@@ -100,6 +102,18 @@ namespace CitizenMP.Server.Resources
                 State = ResourceState.Error;
                 return;
             }
+
+            // TODO: add development mode check
+            m_watcher = new FileSystemWatcher();
+            m_watcher.Path = Path;
+            m_watcher.IncludeSubdirectories = true;
+            m_watcher.NotifyFilter = NotifyFilters.LastWrite;
+            m_watcher.Changed += (s, e) => UpdateClientPackage();
+            m_watcher.Created += (s, e) => UpdateClientPackage();
+            m_watcher.Deleted += (s, e) => UpdateClientPackage();
+            m_watcher.Renamed += (s, e) => UpdateClientPackage();
+
+            m_watcher.EnableRaisingEvents = true;
 
             State = ResourceState.Running;
         }
