@@ -19,10 +19,15 @@ namespace CitizenMP.Server.Game
         private byte[] m_receiveBuffer;
 
         private Client m_host;
+
         public bool UseAsync { get; set; }
 
-        public GameServer()
+        private Resources.ResourceManager m_resourceManager;
+
+        public GameServer(Resources.ResourceManager resManager)
         {
+            m_resourceManager = resManager;
+
             UseAsync = true;
         }
 
@@ -106,15 +111,11 @@ namespace CitizenMP.Server.Game
 
             if (curReliableAck != client.OutReliableAcknowledged)
             {
-                this.Log().Debug("qwack!");
-
                 for (int i = client.OutReliableCommands.Count - 1; i >= 0; i--)
                 {
                     if (client.OutReliableCommands[i].ID <= curReliableAck)
                     {
                         client.OutReliableCommands.RemoveAt(i);
-
-                        this.Log().Debug("ack!");
                     }
                 }
 
@@ -237,9 +238,9 @@ namespace CitizenMP.Server.Game
         {
             this.Log().Debug("that's a fairly nice {0}", messageType);
 
-            if (messageType == 0x7337FD7A) // msgNetEvent
+            if (messageType == 0x7337FD7A || messageType == 0xFA776E18) // msgNetEvent; msgServerEvent
             {
-                var targetNetID = reader.ReadUInt16();
+                var targetNetID = (messageType != 0xFA776E18) ? reader.ReadUInt16() : 0;
                 var nameLength = reader.ReadUInt16();
 
                 var eventName = "";
@@ -257,30 +258,59 @@ namespace CitizenMP.Server.Game
                 // data length
                 var dataLength = size - nameLength - 4;
 
-                // create an output packet
-                var outMsg = new MemoryStream();
-                var outWriter = new BinaryWriter(outMsg);
-
-                outWriter.Write(client.NetID);
-                outWriter.Write(nameLength);
-
-                for (int i = 0; i < (nameLength - 1); i++)
+                // if this is a client event
+                if (messageType == 0x7337FD7A)
                 {
-                    outWriter.Write((byte)eventName[i]);
+                    // create an output packet
+                    var outMsg = new MemoryStream();
+                    var outWriter = new BinaryWriter(outMsg);
+
+                    outWriter.Write(client.NetID);
+                    outWriter.Write(nameLength);
+
+                    for (int i = 0; i < (nameLength - 1); i++)
+                    {
+                        outWriter.Write((byte)eventName[i]);
+                    }
+
+                    outWriter.Write((byte)0);
+
+                    outWriter.Write(reader.ReadBytes(dataLength));
+
+                    var buffer = outMsg.ToArray();
+
+                    // and send it to all clients
+                    if (targetNetID == 65535)
+                    {
+                        foreach (var targetClient in ClientInstances.Clients)
+                        {
+                            var tCl = targetClient.Value;
+
+                            tCl.SendReliableCommand(0x7337FD7A, buffer);
+                        }
+                    }
+                    else
+                    {
+                        var targetClient = ClientInstances.Clients.Where(a => a.Value.NetID == targetNetID).Select(a => a.Value).FirstOrDefault();
+
+                        if (targetClient != null)
+                        {
+                            targetClient.SendReliableCommand(0x7337FD7A, buffer);
+                        }
+                    }
                 }
-
-                outWriter.Write((byte)0);
-
-                outWriter.Write(reader.ReadBytes(dataLength));
-
-                var buffer = outMsg.ToArray();
-
-                // and send it to all clients
-                foreach (var targetClient in ClientInstances.Clients)
+                else
                 {
-                    var tCl = targetClient.Value;
+                    var data = reader.ReadBytes(dataLength);
+                    var dataSB = new StringBuilder(data.Length);
 
-                    tCl.SendReliableCommand(0x7337FD7A, buffer);
+                    foreach (var b in data)
+                    {
+                        dataSB.Append((char)b);
+                    }
+
+                    // TODO: make source equal the game-side client ID, and not the net ID
+                    QueueCallback(() => m_resourceManager.TriggerEvent(eventName, dataSB.ToString(), client.NetID));
                 }
             }
         }
@@ -367,6 +397,16 @@ namespace CitizenMP.Server.Game
             }
         }
 
+        private Queue<Action> m_mainCallbacks = new Queue<Action>();
+
+        void QueueCallback(Action cb)
+        {
+            lock (m_mainCallbacks)
+            {
+                m_mainCallbacks.Enqueue(cb);
+            }
+        }
+
         private int m_residualTime;
         private int m_serverTime;
 
@@ -402,6 +442,18 @@ namespace CitizenMP.Server.Game
                         break;
                     }
                 }
+            }
+
+            while (m_mainCallbacks.Count > 0)
+            {
+                Action cb;
+
+                lock (m_mainCallbacks)
+                {
+                    cb = m_mainCallbacks.Dequeue();
+                }
+
+                cb();
             }
 
             // is it time for a server frame yet?

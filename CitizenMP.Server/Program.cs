@@ -28,7 +28,7 @@ namespace CitizenMP.Server
             httpServer.Start();
 
             // and the game server
-            var gameServer = new Game.GameServer();
+            var gameServer = new Game.GameServer(resManager);
             gameServer.Start();
 
             // main loop
