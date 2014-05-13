@@ -11,3 +11,9 @@ AddEventHandler('dicks', function(a1, a2, a3)
     print("_a2: " .. a2)
     print("_a3.a: " .. a3.a)
 end)
+
+RegisterServerEvent('svPrint')
+
+AddEventHandler('svPrint', function(m)
+    print(tostring(source) .. ' says ' .. m)
+end)

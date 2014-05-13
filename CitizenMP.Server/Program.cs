@@ -18,11 +18,6 @@ namespace CitizenMP.Server
             var resManager = new Resources.ResourceManager();
             resManager.ScanResources("resources/");
 
-            resManager.GetResource("gameInit").Start();
-            resManager.GetResource("lovely").Start();
-
-            resManager.TriggerEvent("dick", -1, 30, 45, 1911);
-
             // initialize the HTTP server
             var httpServer = new HTTP.HttpServer(resManager);
             httpServer.Start();
@@ -30,6 +25,12 @@ namespace CitizenMP.Server
             // and the game server
             var gameServer = new Game.GameServer(resManager);
             gameServer.Start();
+
+            // start resources
+            resManager.GetResource("gameInit").Start();
+            resManager.GetResource("lovely").Start();
+
+            resManager.TriggerEvent("dick", -1, 30, 45, 1911);
 
             // main loop
             int lastTickCount = Environment.TickCount;

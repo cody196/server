@@ -11,9 +11,21 @@ namespace CitizenMP.Server.Resources
     {
         private Dictionary<string, Resource> m_resources;
 
+        internal Game.GameServer GameServer { get; private set; }
+
         public ResourceManager()
         {
             m_resources = new Dictionary<string, Resource>();
+        }
+
+        internal void SetGameServer(Game.GameServer gameServer)
+        {
+            if (GameServer != null)
+            {
+                throw new InvalidOperationException("This manager is already associated with a game server.");
+            }
+
+            GameServer = gameServer;
         }
 
         public Resource GetResource(string name)

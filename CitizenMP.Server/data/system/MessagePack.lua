@@ -836,6 +836,7 @@ unpackers['str16'] = function (c)
     c.i = i
     local n = b1 * 0x100 + b2
     local e = i+n-1
+
     if e > j then
         c:underflow(e)
         s, i, j = c.s, c.i, c.j
@@ -1063,6 +1064,11 @@ end
 
 function m.unpack (s)
     checktype('unpack', 1, s, 'string')
+
+    --[[for i = 1, #s do
+        print(s:byte(i))
+    end]]
+
     local cursor = cursor_string(s)
     local data = unpackers['any'](cursor)
     if cursor.i < cursor.j then

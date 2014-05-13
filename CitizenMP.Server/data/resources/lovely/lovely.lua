@@ -30,6 +30,8 @@ AddEventHandler("bigDick", function(a1, a2, a3)
 	echo("a3: " .. a3 .. "\n")
 
 	PrintStringWithLiteralStringNow("STRING", "a2 = " .. a2.a, 5500, true)
+
+	TriggerServerEvent('svPrint', 'MARTIN MADRAZO GIVE YOU GREEN LIGHT')
 end)
 
 CreateThread(function()
@@ -89,5 +91,5 @@ H: (-0.33642578, 0.19165039, 0.12501526)]]
 		draw(-0.33642578, 0.111328125, 0.20314026, 6)
 		draw(0.36572266, -0.12585449, -0.12501526, 7)
 		draw(-0.33642578, 0.19165039, 0.12501526, 8)
-	end	
+	end
 end)

@@ -27,6 +27,7 @@ namespace CitizenMP.Server.Game
         public GameServer(Resources.ResourceManager resManager)
         {
             m_resourceManager = resManager;
+            m_resourceManager.SetGameServer(this);
 
             UseAsync = true;
         }
@@ -301,7 +302,14 @@ namespace CitizenMP.Server.Game
                 }
                 else
                 {
-                    var data = reader.ReadBytes(dataLength);
+                    var data = reader.ReadBytes(dataLength + 2); // as there's no network ID in it
+
+                    if (!m_whitelistedEvents.Contains(eventName))
+                    {
+                        this.Log().Warn("A client tried to send an event of type {0}, but it was not greenlit for client invocation. You may need to call RegisterServerEvent from your script.", eventName);
+                        return;
+                    }
+
                     var dataSB = new StringBuilder(data.Length);
 
                     foreach (var b in data)
@@ -312,6 +320,16 @@ namespace CitizenMP.Server.Game
                     // TODO: make source equal the game-side client ID, and not the net ID
                     QueueCallback(() => m_resourceManager.TriggerEvent(eventName, dataSB.ToString(), client.NetID));
                 }
+            }
+        }
+
+        private HashSet<string> m_whitelistedEvents = new HashSet<string>();
+
+        public void WhitelistEvent(string eventName)
+        {
+            if (!m_whitelistedEvents.Contains(eventName))
+            {
+                m_whitelistedEvents.Add(eventName);
             }
         }
 

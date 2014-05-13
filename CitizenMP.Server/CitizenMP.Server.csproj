@@ -36,7 +36,7 @@
   <ItemGroup>
     <Reference Include="KeraLua, Version=1.3.0.0, Culture=neutral, PublicKeyToken=04d04586786c6f34, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NLua.CitizenMP.2.2.2.16\lib\net40\x86\KeraLua.dll</HintPath>
+      <HintPath>..\packages\NLua.CitizenMP.2.2.2.17\lib\net40\x86\KeraLua.dll</HintPath>
     </Reference>
     <Reference Include="log4net, Version=1.2.13.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -54,7 +54,7 @@
     </Reference>
     <Reference Include="NLua, Version=1.3.0.0, Culture=neutral, PublicKeyToken=8df2ab518030ea95, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NLua.CitizenMP.2.2.2.16\lib\net40\x86\NLua.dll</HintPath>
+      <HintPath>..\packages\NLua.CitizenMP.2.2.2.17\lib\net40\x86\NLua.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -113,7 +113,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy /s /y "Q:\Dev\citizenmp-sharp\CitizenMP.Server\packages\NLua.CitizenMP.2.2.2.14\lib\native\x86\*.*" "$(TargetDir)"
-xcopy /s /y "Q:\Dev\citizenmp-sharp\CitizenMP.Server\packages\NLua.CitizenMP.2.2.2.16\lib\native\x86\*.*" "$(TargetDir)"</PostBuildEvent>
+xcopy /s /y "Q:\Dev\citizenmp-sharp\CitizenMP.Server\packages\NLua.CitizenMP.2.2.2.17\lib\native\x86\*.*" "$(TargetDir)"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
