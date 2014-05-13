@@ -88,5 +88,43 @@ namespace CitizenMP.Server.Resources
                 ScanResources(path);
             }
         }
+
+        public void TriggerEvent(string eventName, int source, params object[] args)
+        {
+            // convert the arguments to an object each
+            var mpArgs = new MsgPack.MessagePackObject[args.Length];
+
+            for (int i = 0; i < mpArgs.Length; i++)
+            {
+                mpArgs[i] = MsgPack.MessagePackObject.FromObject(args[i]);
+            }
+
+            // make an array and serialize it
+            var stream = new MemoryStream();
+            var msgPackObject = MsgPack.MessagePackObject.FromObject(mpArgs);
+            var packer = MsgPack.Packer.Create(stream);
+
+            msgPackObject.PackToMessage(packer, null);
+
+            // make it into a string for lua
+            var array = stream.ToArray();
+            var sb = new StringBuilder(array.Length);
+
+            foreach (var b in array)
+            {
+                sb.Append((char)b);
+            }
+
+            // and trigger the event
+            TriggerEvent(eventName, sb.ToString(), source);
+        }
+
+        public void TriggerEvent(string eventName, string argsSerialized, int source)
+        {
+            foreach (var resource in m_resources)
+            {
+                resource.Value.TriggerEvent(eventName, argsSerialized, source);
+            }
+        }
     }
 }

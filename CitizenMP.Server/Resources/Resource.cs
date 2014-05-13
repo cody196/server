@@ -21,12 +21,14 @@ namespace CitizenMP.Server.Resources
         public List<string> Scripts { get; private set; }
         public List<string> AuxFiles { get; private set; }
         public List<string> Dependants { get; private set; }
+        public List<string> ServerScripts { get; private set; }
 
         public ResourceManager Manager { get; set; }
 
         public string ClientPackageHash { get; private set; }
 
         private FileSystemWatcher m_watcher;
+        private ScriptEnvironment m_scriptEnvironment;
 
         public Resource(string name, string path)
         {
@@ -53,6 +55,7 @@ namespace CitizenMP.Server.Resources
                 Exports = data.exports ?? new List<string>();
                 Scripts = data.scripts ?? new List<string>();
                 AuxFiles = data.auxFiles ?? new List<string>();
+                ServerScripts = data.serverScripts ?? new List<string>();
 
                 return true;
             }
@@ -103,6 +106,17 @@ namespace CitizenMP.Server.Resources
                 return;
             }
 
+            // create script environment
+            m_scriptEnvironment = new ScriptEnvironment(this);
+
+            if (!m_scriptEnvironment.Create())
+            {
+                this.Log().Error("Resource {0} caused an error during loading. Please see the above lines for details.", Name);
+
+                State = ResourceState.Error;
+                return;
+            }
+
             // TODO: add development mode check
             m_watcher = new FileSystemWatcher();
             m_watcher.Path = Path;
@@ -131,6 +145,7 @@ namespace CitizenMP.Server.Resources
 
                 // add all script files
                 requiredFiles.AddRange(Scripts);
+                requiredFiles.AddRange(AuxFiles);
 
                 // get the last-modified date of the current RPF and the cache
                 var rpfName = "cache/http-files/" + Name + ".rpf";
@@ -171,6 +186,14 @@ namespace CitizenMP.Server.Resources
             return File.Open("cache/http-files/" + Name + ".rpf", FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
+        public void TriggerEvent(string eventName, string argsSerialized, int source)
+        {
+            if (State == ResourceState.Running)
+            {
+                m_scriptEnvironment.TriggerEvent(eventName, argsSerialized, source);
+            }
+        }
+
         private class ResourceData
         {
             public Dictionary<string, string> info { get; set; }
@@ -182,6 +205,8 @@ namespace CitizenMP.Server.Resources
             public List<string> scripts { get; set; }
 
             public List<string> auxFiles { get; set; }
+
+            public List<string> serverScripts { get; set; }
         }
     }
 

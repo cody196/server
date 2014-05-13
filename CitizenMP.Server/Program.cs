@@ -21,6 +21,8 @@ namespace CitizenMP.Server
             resManager.GetResource("gameInit").Start();
             resManager.GetResource("lovely").Start();
 
+            resManager.TriggerEvent("dick", -1, 30, 45, 1911);
+
             // initialize the HTTP server
             var httpServer = new HTTP.HttpServer(resManager);
             httpServer.Start();

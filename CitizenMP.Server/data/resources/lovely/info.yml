@@ -8,5 +8,8 @@ exports:
     - make
     - fake
 
+serverScripts:
+    - lovelier.lua
+
 scripts:
     - lovely.lua
