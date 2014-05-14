@@ -13,3 +13,4 @@ serverScripts:
 
 scripts:
     - lovely.lua
+    - rpc.lua

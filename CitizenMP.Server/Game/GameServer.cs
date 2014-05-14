@@ -262,43 +262,9 @@ namespace CitizenMP.Server.Game
                 // if this is a client event
                 if (messageType == 0x7337FD7A)
                 {
-                    // create an output packet
-                    var outMsg = new MemoryStream();
-                    var outWriter = new BinaryWriter(outMsg);
+                    var data = reader.ReadBytes(dataLength);
 
-                    outWriter.Write(client.NetID);
-                    outWriter.Write(nameLength);
-
-                    for (int i = 0; i < (nameLength - 1); i++)
-                    {
-                        outWriter.Write((byte)eventName[i]);
-                    }
-
-                    outWriter.Write((byte)0);
-
-                    outWriter.Write(reader.ReadBytes(dataLength));
-
-                    var buffer = outMsg.ToArray();
-
-                    // and send it to all clients
-                    if (targetNetID == 65535)
-                    {
-                        foreach (var targetClient in ClientInstances.Clients)
-                        {
-                            var tCl = targetClient.Value;
-
-                            tCl.SendReliableCommand(0x7337FD7A, buffer);
-                        }
-                    }
-                    else
-                    {
-                        var targetClient = ClientInstances.Clients.Where(a => a.Value.NetID == targetNetID).Select(a => a.Value).FirstOrDefault();
-
-                        if (targetClient != null)
-                        {
-                            targetClient.SendReliableCommand(0x7337FD7A, buffer);
-                        }
-                    }
+                    TriggerClientEvent(eventName, data, targetNetID, client.NetID);
                 }
                 else
                 {
@@ -319,6 +285,61 @@ namespace CitizenMP.Server.Game
 
                     // TODO: make source equal the game-side client ID, and not the net ID
                     QueueCallback(() => m_resourceManager.TriggerEvent(eventName, dataSB.ToString(), client.NetID));
+                }
+            }
+        }
+
+        public void TriggerClientEvent(string eventName, string data, int targetNetID, int sourceNetID)
+        {
+            var dataArray = new byte[data.Length];
+            var i = 0;
+
+            foreach (var c in data)
+            {
+                dataArray[i] = (byte)c;
+                i++;
+            }
+
+            TriggerClientEvent(eventName, dataArray, targetNetID, sourceNetID);
+        }
+
+        public void TriggerClientEvent(string eventName, byte[] data, int targetNetID, int sourceNetID)
+        {
+            // create an output packet
+            var outMsg = new MemoryStream();
+            var outWriter = new BinaryWriter(outMsg);
+
+            outWriter.Write((ushort)sourceNetID);
+            outWriter.Write((ushort)(eventName.Length + 1));
+
+            for (int i = 0; i < eventName.Length; i++)
+            {
+                outWriter.Write((byte)eventName[i]);
+            }
+
+            outWriter.Write((byte)0);
+
+            outWriter.Write(data);
+
+            var buffer = outMsg.ToArray();
+
+            // and send it to all clients
+            if (targetNetID == 65535 || targetNetID == -1)
+            {
+                foreach (var targetClient in ClientInstances.Clients)
+                {
+                    var tCl = targetClient.Value;
+
+                    tCl.SendReliableCommand(0x7337FD7A, buffer);
+                }
+            }
+            else
+            {
+                var targetClient = ClientInstances.Clients.Where(a => a.Value.NetID == targetNetID).Select(a => a.Value).FirstOrDefault();
+
+                if (targetClient != null)
+                {
+                    targetClient.SendReliableCommand(0x7337FD7A, buffer);
                 }
             }
         }

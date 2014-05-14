@@ -19,6 +19,14 @@ namespace CitizenMP.Server.Resources
             ScriptEnvironment.CurrentEnvironment.Resource.Manager.TriggerEvent(eventName, serializedArgs, -1);
         }
 
+        [LuaFunction("TriggerClientEvent")]
+        static void TriggerClientEvent_f(string eventName, int netID, params object[] args)
+        {
+            var serializedArgs = SerializeArguments(args);
+
+            ScriptEnvironment.CurrentEnvironment.Resource.Manager.GameServer.TriggerClientEvent(eventName, serializedArgs, netID, 65535);
+        }
+
         [LuaFunction("RegisterServerEvent")]
         static void RegisterServerEvent_f(string eventName)
         {

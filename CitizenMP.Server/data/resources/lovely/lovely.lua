@@ -29,7 +29,7 @@ AddEventHandler("bigDick", function(a1, a2, a3)
 	echo("a2: " .. a2.a .. "\n")
 	echo("a3: " .. a3 .. "\n")
 
-	PrintStringWithLiteralStringNow("STRING", "a2 = " .. a2.a, 5500, true)
+	--PrintStringWithLiteralStringNow("STRING", "a2 = " .. a2.a, 5500, true)
 
 	TriggerServerEvent('svPrint', 'MARTIN MADRAZO GIVE YOU GREEN LIGHT')
 end)
