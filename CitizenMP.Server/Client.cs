@@ -76,7 +76,7 @@ namespace CitizenMP.Server
 
         public void SendRaw(byte[] buffer)
         {
-            this.Log().Debug("sending {0}-byte packet to {1}", buffer.Length, NetID);
+            //this.Log().Debug("sending {0}-byte packet to {1}", buffer.Length, NetID);
 
             if (buffer.Length > 1024)
             {

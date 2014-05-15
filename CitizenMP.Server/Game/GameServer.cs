@@ -191,7 +191,7 @@ namespace CitizenMP.Server.Game
                 writer.Write(data);
                 writer.Write(0xCA569E63);
 
-                this.Log().Debug("routing {0}-byte packet to {1}", dataLength, targetNetID);
+                //this.Log().Debug("routing {0}-byte packet to {1}", dataLength, targetNetID);
 
                 targetClient.NetChannel.Send(stream.ToArray());
             }
@@ -237,7 +237,7 @@ namespace CitizenMP.Server.Game
 
         void HandleReliableCommand(Client client, uint messageType, BinaryReader reader, int size)
         {
-            this.Log().Debug("that's a fairly nice {0}", messageType);
+            //this.Log().Debug("that's a fairly nice {0}", messageType);
 
             if (messageType == 0x7337FD7A || messageType == 0xFA776E18) // msgNetEvent; msgServerEvent
             {
@@ -254,7 +254,7 @@ namespace CitizenMP.Server.Game
                 // null terminator
                 reader.ReadByte();
 
-                this.Log().Debug("client sent a {0}", eventName);
+                //this.Log().Debug("client sent a {0}", eventName);
 
                 // data length
                 var dataLength = size - nameLength - 4;
