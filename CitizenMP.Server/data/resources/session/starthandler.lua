@@ -72,7 +72,7 @@ AddEventHandler('gameModeStarted', function(gmName)
 					return
 				end
 
-				launchGame()
+				--launchGame()
 			end
 
 			NetworkSetScriptLobbyState(false)
