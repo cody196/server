@@ -216,24 +216,42 @@ namespace CitizenMP.Server.Game
 
             if (allowHost)
             {
-                m_host = client;
-                m_host.Base = baseNum;
-
-                var outMsg = new MemoryStream();
-                var outWriter = new BinaryWriter(outMsg);
-
-                outWriter.Write(client.NetID);
-                outWriter.Write(client.Base);
-
-                // send a is-host message to everyone
-                foreach (var targetClient in ClientInstances.Clients)
-                {
-                    var tCl = targetClient.Value;
-
-                    tCl.SendReliableCommand(0xB3EA30DE, outMsg.ToArray());
-                }
+                client.Base = baseNum;
+                SetNewHost(client);
             }
         }
+
+        private void SetNewHost(Client client)
+        {
+            m_host = client;
+
+            var outMsg = new MemoryStream();
+            var outWriter = new BinaryWriter(outMsg);
+
+            outWriter.Write(client.NetID);
+            outWriter.Write(client.Base);
+
+            // send a is-host message to everyone
+            foreach (var targetClient in ClientInstances.Clients)
+            {
+                var tCl = targetClient.Value;
+
+                tCl.SendReliableCommand(0xB3EA30DE, outMsg.ToArray());
+            }
+
+            // all votes are irrelevant now
+            m_hostVotes.Clear();
+        }
+
+        private void BeforeDropClient(Client client)
+        {
+            if (m_host != null && client.NetID == m_host.NetID)
+            {
+                m_host = null;
+            }
+        }
+
+        private Dictionary<uint, int> m_hostVotes = new Dictionary<uint, int>();
 
         void HandleReliableCommand(Client client, uint messageType, BinaryReader reader, int size)
         {
@@ -243,7 +261,64 @@ namespace CitizenMP.Server.Game
             {
                 this.Log().Info("Client {0} quit.", client.Name);
 
+                BeforeDropClient(client);
+
                 ClientInstances.RemoveClient(client);
+                return;
+            }
+
+            if (messageType == 0x86E9F87B) // msgHeHost
+            {
+                // we need to maintain some consensus on who's becoming host; if >=33% (rounded up) of connected clients say one's host, then so be it
+                var allegedNetID = reader.ReadUInt32();
+
+                if (m_host != null && allegedNetID == m_host.NetID)
+                {
+                    this.Log().Info("Got a late vote for {0}; they are our current host", allegedNetID);
+
+                    return;
+                }
+
+                var newBase = reader.ReadUInt16();
+
+                var clientCount = ClientInstances.Clients.Count(c => c.Value.SentData == true);
+                var votesNeeded = (clientCount > 0) ? ((clientCount / 3) + (((clientCount % 3) > 0) ? 1 : 0)) : 0;
+
+                int curVotes;
+                
+                if (!m_hostVotes.TryGetValue(allegedNetID, out curVotes))
+                {
+                    curVotes = 1;
+                }
+                else
+                {
+                    curVotes++;
+                }
+
+                this.Log().Info("Received a vote for {0}; current votes {1}, needed {2}", allegedNetID, curVotes, votesNeeded);
+
+                // do the big check
+                if (curVotes >= votesNeeded)
+                {
+                    var newHost = ClientInstances.Clients.FirstOrDefault(a => a.Value.NetID == allegedNetID);
+
+                    if (newHost.Equals(default(KeyValuePair<string, Client>)))
+                    {
+                        this.Log().Warn("The vote was rigged! Nobody is host! Bad politics!");
+                        return;
+                    }
+
+                    this.Log().Info("Net ID {0} won the election; they are the new host-elect.", allegedNetID);
+
+                    newHost.Value.Base = newBase;
+
+                    SetNewHost(newHost.Value);
+                }
+                else
+                {
+                    m_hostVotes[allegedNetID] = curVotes;
+                }
+
                 return;
             }
 
@@ -539,6 +614,8 @@ namespace CitizenMP.Server.Game
 
             foreach (var client in toRemove)
             {
+                BeforeDropClient(client);
+
                 ClientInstances.RemoveClient(client);
             }
 
