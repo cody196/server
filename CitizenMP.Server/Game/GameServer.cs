@@ -239,6 +239,14 @@ namespace CitizenMP.Server.Game
         {
             //this.Log().Debug("that's a fairly nice {0}", messageType);
 
+            if (messageType == 0x522CADD1) // msgIQuit
+            {
+                this.Log().Info("Client {0} quit.", client.Name);
+
+                ClientInstances.RemoveClient(client);
+                return;
+            }
+
             if (messageType == 0x7337FD7A || messageType == 0xFA776E18) // msgNetEvent; msgServerEvent
             {
                 var targetNetID = (messageType != 0xFA776E18) ? reader.ReadUInt16() : 0;
