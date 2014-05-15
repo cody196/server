@@ -36,13 +36,13 @@ function HandleResults(results)
     local success, err = coroutine.resume(curRoutine)
 
     if success then
-        SendEvents()
+        SendEvents({ getSource = getSource })
     else
         print(err)
     end
 end
 
-function SendEvents()
+function SendEvents(env)
     TriggerClientEvent('svRpc:run', getSource(), 10, execQueue)
 end
 

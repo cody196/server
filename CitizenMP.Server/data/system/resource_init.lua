@@ -39,8 +39,7 @@ function CreateRPCContext(cl, f)
 
     local key = cl .. '_' .. idx
 
-    local env = {}
-    local envBase = {
+    local env = {
         getIdx = function()
             return idx
         end,
@@ -48,8 +47,6 @@ function CreateRPCContext(cl, f)
             return cl
         end
     }
-
-    env.getIdx = envBase.getIdx
 
     local lastEnv = _ENV
 
