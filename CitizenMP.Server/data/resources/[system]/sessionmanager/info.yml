@@ -1,0 +1,12 @@
+info:
+    description: code to manage the internal rline game session
+
+scripts:
+    - client/initial.lua
+    - client/leavehandler.lua
+    - client/activationhandler.lua
+    - client/hostservice.lua
+    - client/sessionstarter.lua
+
+serverScripts:
+    - server/host_lock.lua

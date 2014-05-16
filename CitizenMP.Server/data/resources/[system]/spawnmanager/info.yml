@@ -1,0 +1,11 @@
+info:
+    description: provides basic client-side player respawning
+
+scripts:
+    - spawnmanager.lua
+
+exports:
+    - spawnPlayer
+    - addSpawnPoint
+    - loadSpawns
+    - setAutoSpawn

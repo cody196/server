@@ -1,0 +1,6 @@
+ListenPort: 30120
+
+AutoStartResources:
+    - gameInit # this resource (or equivalent) is pretty much required for the game to start; it'll crash on loading otherwise
+    - sessionmanager
+    - spawnmanager
