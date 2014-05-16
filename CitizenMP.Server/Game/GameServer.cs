@@ -240,7 +240,7 @@ namespace CitizenMP.Server.Game
             {
                 var tCl = targetClient.Value;
 
-                tCl.SendReliableCommand(0xB3EA30DE, outMsg.ToArray());
+                tCl.SendReliableCommand(0xB3EA30DE, outMsg.ToArray()); // 'msgIHost'
             }
 
             // all votes are irrelevant now
@@ -252,6 +252,20 @@ namespace CitizenMP.Server.Game
             if (m_host != null && client.NetID == m_host.NetID)
             {
                 m_host = null;
+
+                // tell current clients we've got no host
+                var outMsg = new MemoryStream();
+                var outWriter = new BinaryWriter(outMsg);
+
+                outWriter.Write(65535);
+                outWriter.Write(65535);
+
+                foreach (var targetClient in ClientInstances.Clients)
+                {
+                    var tCl = targetClient.Value;
+
+                    tCl.SendReliableCommand(0xB3EA30DE, outMsg.ToArray()); // 'msgIHost'
+                }
             }
         }
 
