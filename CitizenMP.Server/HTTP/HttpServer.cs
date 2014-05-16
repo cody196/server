@@ -22,8 +22,11 @@ namespace CitizenMP.Server.HTTP
 
         private Resources.ResourceManager m_resourceManager;
 
-        public HttpServer(Resources.ResourceManager resManager)
+        private Configuration m_configuration;
+
+        public HttpServer(Configuration config, Resources.ResourceManager resManager)
         {
+            m_configuration = config;
             m_resourceManager = resManager;
 
             m_handlers = new Dictionary<string, Func<IHttpHeaders, JObject>>();
@@ -36,11 +39,11 @@ namespace CitizenMP.Server.HTTP
         {
             log4net.Config.XmlConfigurator.Configure();
 
-            this.Log().Info("Starting HTTP server on port {0}", 30120);
+            this.Log().Info("Starting HTTP server on port {0}", m_configuration.ListenPort);
 
             var httpServer = new uhttpsharp.HttpServer(new HttpRequestProvider());
 
-            httpServer.Use(new TcpListenerAdapter(new TcpListener(IPAddress.Any, 30120)));
+            httpServer.Use(new TcpListenerAdapter(new TcpListener(IPAddress.Any, m_configuration.ListenPort)));
 
             httpServer.Use(new HttpRouter().With("client", new AnonymousHttpRequestHandler((context, next) =>
             {

@@ -9,28 +9,57 @@ namespace CitizenMP.Server
 {
     class Program
     {
-        private void Start()
+        private void Start(string configFileName)
         {
-            /*var res = new Resources.Resource("lovely", @"S:\Games\Steam\steamapps\common\grand theft auto iv\GTAIV\citizen\lovely");
-            res.Parse();
-            res.Start();*/
+            Configuration config;
+
+            try
+            {
+                config = Configuration.Load(configFileName ?? "citmp-server.yml");
+
+                if (config.AutoStartResources == null)
+                {
+                    this.Log().Fatal("No auto-started resources were configured.");
+                    return;
+                }
+
+                if (config.ListenPort == 0)
+                {
+                    this.Log().Fatal("No port was configured.");
+                    return;
+                }
+            }
+            catch (System.IO.IOException)
+            {
+                this.Log().Fatal("Could not open the configuration file {0}.", configFileName ?? "citmp-server.yml");
+                return;
+            }
 
             var resManager = new Resources.ResourceManager();
             resManager.ScanResources("resources/");
 
             // initialize the HTTP server
-            var httpServer = new HTTP.HttpServer(resManager);
+            var httpServer = new HTTP.HttpServer(config, resManager);
             httpServer.Start();
 
             // and the game server
-            var gameServer = new Game.GameServer(resManager);
+            var gameServer = new Game.GameServer(config, resManager);
             gameServer.Start();
 
             // start resources
-            resManager.GetResource("gameInit").Start();
-            resManager.GetResource("lovely").Start();
+            foreach (var resource in config.AutoStartResources)
+            {
+                var res = resManager.GetResource(resource);
 
-            resManager.TriggerEvent("dick", -1, 30, 45, 1911);
+                if (res == null)
+                {
+                    this.Log().Error("Could not find auto-started resource {0}.", resource);
+                }
+                else
+                {
+                    res.Start();
+                }
+            }
 
             // main loop
             int lastTickCount = Environment.TickCount;
@@ -53,7 +82,7 @@ namespace CitizenMP.Server
             LoggingExtensions.Logging.Log.InitializeWith<LoggingExtensions.NLog.NLogLog>();
 
             // start the program
-            new Program().Start();
+            new Program().Start((args.Length > 0) ? args[0] : null);
         }
     }
 }

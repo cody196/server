@@ -24,8 +24,12 @@ namespace CitizenMP.Server.Game
 
         private Resources.ResourceManager m_resourceManager;
 
-        public GameServer(Resources.ResourceManager resManager)
+        private Configuration m_configuration;
+
+        public GameServer(Configuration config, Resources.ResourceManager resManager)
         {
+            m_configuration = config;
+
             m_resourceManager = resManager;
             m_resourceManager.SetGameServer(this);
 
@@ -34,10 +38,10 @@ namespace CitizenMP.Server.Game
 
         public void Start()
         {
-            this.Log().Info("Starting game server on port {0}", 30120);
+            this.Log().Info("Starting game server on port {0}", m_configuration.ListenPort);
 
             m_gameSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
-            m_gameSocket.Bind(new IPEndPoint(IPAddress.Any, 30120));
+            m_gameSocket.Bind(new IPEndPoint(IPAddress.Any, m_configuration.ListenPort));
 
             m_gameSocket.Blocking = false;
 
