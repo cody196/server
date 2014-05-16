@@ -36,7 +36,7 @@ namespace CitizenMP.Server
                 {
                     ms_curNetID++;
 
-                    if (ms_curNetID == 0)
+                    if (ms_curNetID == 0 || ms_curNetID == 65535)
                     {
                         ms_curNetID = 1;
                     }
