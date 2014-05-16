@@ -49,7 +49,9 @@ namespace CitizenMP.Server
         {
             writer.Write(LastReceivedReliable);
 
-            foreach (var cmd in OutReliableCommands)
+            var outReliableCommands = OutReliableCommands.GetRange(0, OutReliableCommands.Count);
+
+            foreach (var cmd in outReliableCommands)
             {
                 writer.Write(cmd.Type);
 
