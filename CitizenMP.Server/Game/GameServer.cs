@@ -257,7 +257,7 @@ namespace CitizenMP.Server.Game
                 var outMsg = new MemoryStream();
                 var outWriter = new BinaryWriter(outMsg);
 
-                outWriter.Write(65535);
+                outWriter.Write((ushort)65535);
                 outWriter.Write(65535);
 
                 foreach (var targetClient in ClientInstances.Clients)
