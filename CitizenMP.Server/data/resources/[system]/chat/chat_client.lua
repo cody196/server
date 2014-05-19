@@ -7,11 +7,24 @@ local lastWasRepeat = false
 local lastChar = ''
 
 local chatBuffer = {}
-local chatHeight = 4
+local chatHeight = 6
 local chatMaxItem = 1
 local chatMinItem = 1
 
 local keyboardDelay, keyboardSpeed = GetKeyboardDelays()
+
+local colors = {
+	['0'] = 'r',
+	['1'] = 'r',
+	['2'] = 'g',
+	['3'] = 'b',
+	['4'] = 'y',
+	['5'] = 'p',
+	['6'] = 'c',
+	['7'] = 'w',
+	['8'] = 'm',
+	['9'] = 'l',
+}
 
 function printChatLine(name, message, color)
 	if not color then
@@ -20,6 +33,14 @@ function printChatLine(name, message, color)
 
 	chatMaxItem = chatMaxItem + 1
 
+	-- process message
+	message = message:gsub('~', '')
+
+	for i, letter in pairs(colors) do
+		message = message:gsub('%^' .. i, '~' .. letter .. '~')
+	end
+
+	-- add to array
 	chatBuffer[(chatMaxItem % chatHeight) + 1] = {
 		time = GetNetworkTimer(_i),
 		name = name .. ':',
@@ -33,7 +54,8 @@ function printChatLine(name, message, color)
 end
 
 local function addMessageToChatBuffer(playerid, message)
-	local player = ConvertIntToPlayerindex(playerid)
+	local r, g, b = GetPlayerRgbColour(player, _i, _i, _i)
+	--[[local player = ConvertIntToPlayerindex(playerid)
 	local r, g, b = GetPlayerRgbColour(player, _i, _i, _i)
 
 	chatMaxItem = chatMaxItem + 1
@@ -47,7 +69,9 @@ local function addMessageToChatBuffer(playerid, message)
 
 	if (chatMaxItem - chatMinItem) > chatHeight then
 		chatMinItem = chatMinItem + 1
-	end
+	end]]
+
+	printChatLine(GetPlayerName(playerid, _s), message, { r, g, b })
 end
 
 local function setupFontStyle(font, wrapX, wrapY, style, styleArg, styleR, styleG, styleB, styleA)
@@ -354,7 +378,22 @@ local function getTextChat()
 end
 
 AddEventHandler('chatMessage', function(name, color, message)
-	printChatLine(name, message, color)
+	local start, remaining = 1, #message
+
+	while remaining > 0 do
+		local thisSize = 100
+
+		if remaining < thisSize then
+			thisSize = remaining
+		end
+
+		local msg = message:sub(start, thisSize)
+
+		printChatLine(name, msg, color)
+
+		remaining = remaining - thisSize
+		start = start + thisSize
+	end
 end)
 
 CreateThread(function()

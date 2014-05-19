@@ -103,6 +103,7 @@ namespace CitizenMP.Server.Resources
                 // load global data files
                 m_luaState.DoFile("system/resource_init.lua");
                 m_luaState.DoFile("system/MessagePack.lua");
+                m_luaState.DoFile("system/dkjson.lua");
 
                 // load scripts defined in this resource
                 foreach (var script in m_resource.ServerScripts)

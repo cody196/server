@@ -13,9 +13,13 @@ namespace CitizenMP.Server.Resources
 
         internal Game.GameServer GameServer { get; private set; }
 
+        internal Game.RconLog RconLog { get; private set; }
+
         public ResourceManager()
         {
             m_resources = new Dictionary<string, Resource>();
+
+            RconLog = new Game.RconLog();
         }
 
         internal void SetGameServer(Game.GameServer gameServer)

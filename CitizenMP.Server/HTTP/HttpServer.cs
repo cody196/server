@@ -97,6 +97,14 @@ namespace CitizenMP.Server.HTTP
                 }
 
                 return Task.Factory.GetCompleted();
+            })).With("log", new AnonymousHttpRequestHandler((context, next) =>
+            {
+                if (m_resourceManager.RconLog != null)
+                {
+                    m_resourceManager.RconLog.RunHttp(context);
+                }
+
+                return Task.Factory.GetCompleted();
             })));
 
             httpServer.Use((context, next) =>

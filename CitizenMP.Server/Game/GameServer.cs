@@ -40,7 +40,7 @@ namespace CitizenMP.Server.Game
         {
             this.Log().Info("Starting game server on port {0}", m_configuration.ListenPort);
 
-            m_gameSocket = new Socket(SocketType.Dgram, ProtocolType.Udp);
+            m_gameSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             m_gameSocket.Bind(new IPEndPoint(IPAddress.Any, m_configuration.ListenPort));
 
             m_gameSocket.Blocking = false;
@@ -315,6 +315,8 @@ namespace CitizenMP.Server.Game
 
         private void BeforeDropClient(Client client)
         {
+            m_resourceManager.TriggerEvent("playerDropped", client.NetID);
+
             if (m_host != null && client.NetID == m_host.NetID)
             {
                 m_host = null;
@@ -601,6 +603,11 @@ namespace CitizenMP.Server.Game
             {
                 m_asyncEventArgs_Completed(this, e);
             }
+        }
+
+        public int GetHostID()
+        {
+            return (m_host != null) ? m_host.NetID : -1;
         }
 
         private Queue<Action> m_mainCallbacks = new Queue<Action>();

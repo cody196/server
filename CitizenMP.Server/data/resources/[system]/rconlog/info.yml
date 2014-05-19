@@ -1,0 +1,8 @@
+info:
+    description: support for b3/other rcon logging
+
+serverScripts:
+    - rconlog_server.lua
+
+scripts:
+    - rconlog_client.lua

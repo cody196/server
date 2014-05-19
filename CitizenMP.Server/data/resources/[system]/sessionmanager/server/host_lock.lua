@@ -11,14 +11,14 @@ local hostReleaseCallbacks = {}
 AddEventHandler('hostingSession', function()
     -- if the lock is currently held, tell the client to await further instruction
     if currentHosting then
-        TriggerClientEvent('sessionHostResult', source, 'wait')
+        --TriggerClientEvent('sessionHostResult', source, 'wait')
 
         -- register a callback for when the lock is freed
         table.insert(hostReleaseCallbacks, function()
             TriggerClientEvent('sessionHostResult', source, 'free')
         end)
 
-        return
+        --return
     end
 
     currentHosting = source

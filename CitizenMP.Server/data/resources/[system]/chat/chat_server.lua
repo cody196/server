@@ -7,6 +7,7 @@ AddEventHandler('chatMessageEntered', function(name, color, message)
     end
 
     TriggerClientEvent('chatMessage', -1, name, color, message)
+    TriggerEvent('chatMessage', source, name, message)
 
     print(name .. ': ' .. message)
 end)
@@ -17,8 +18,21 @@ AddEventHandler('rconCommand', function(commandName, args)
         return
     end
 
-    local msg = table.concat(args, '')
+    local msg = table.concat(args, ' ')
 
     TriggerClientEvent('chatMessage', -1, 'console', { 0, 0x99, 255 }, msg)
+    RconPrint('console: ' .. msg .. "\n")
+end)
+
+-- tell command handler
+AddEventHandler('rconCommand', function(commandName, args)
+    if commandName ~= "tell" then
+        return
+    end
+
+    local target = table.remove(args, 1)
+    local msg = table.concat(args, ' ')
+
+    TriggerClientEvent('chatMessage', tonumber(target), 'console', { 0, 0x99, 255 }, msg)
     RconPrint('console: ' .. msg .. "\n")
 end)
