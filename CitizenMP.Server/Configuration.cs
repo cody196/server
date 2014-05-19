@@ -22,6 +22,8 @@ namespace CitizenMP.Server
 
         public List<string> AutoStartResources { get; set; }
 
+        public string RconPassword { get; set; }
+
         public int ListenPort { get; set; }
     }
 }

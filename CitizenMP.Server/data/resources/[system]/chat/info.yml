@@ -1,0 +1,11 @@
+info:
+    description: chat management stuff
+
+exports:
+    - printChatLine
+
+scripts:
+    - chat_client.lua
+
+serverScripts:
+    - chat_server.lua

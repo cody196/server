@@ -72,6 +72,67 @@ namespace CitizenMP.Server.Game
             {
                 ProcessConnectCommand(remoteEP, commandText);
             }
+            else if (command == "rcon")
+            {
+                ProcessRconCommand(remoteEP, commandText);
+            }
+        }
+
+        private Dictionary<IPEndPoint, int> m_lastRconTimes = new Dictionary<IPEndPoint, int>();
+
+        void ProcessRconCommand(IPEndPoint remoteEP, string commandText)
+        {
+            // tokenize command text
+            var command = Utils.Tokenize(commandText);
+
+            if (command.Length < 3)
+            {
+                return;
+            }
+
+            // get last rcon time (flood protection)
+            if (m_lastRconTimes.ContainsKey(remoteEP))
+            {
+                var time = m_lastRconTimes[remoteEP];
+
+                if (m_serverTime < (time + 100))
+                {
+                    return;
+                }
+            }
+
+            RconPrint.StartRedirect(this, remoteEP);
+
+            // check for the password being valid
+            if (m_configuration.RconPassword != null)
+            {
+                if (m_configuration.RconPassword != command[1])
+                {
+                    RconPrint.Print("Invalid rcon password.\n");
+
+                    this.Log().Warn("Bad rcon from {0}", remoteEP);
+                }
+                else
+                {
+                    var arguments = command.Skip(3).ToList();
+
+                    try
+                    {
+                        m_resourceManager.TriggerEvent("rconCommand", -1, command[2], arguments);
+                    }
+                    catch (Exception e)
+                    {
+                        this.Log().Error(() => "error handling rcon: " + e.Message, e);
+                        RconPrint.Print(e.Message);
+                    }
+                }
+            }
+            else
+            {
+                RconPrint.Print("No rcon password was set on this server.\n");
+            }
+
+            RconPrint.EndRedirect();
         }
 
         void ProcessConnectCommand(IPEndPoint remoteEP, string commandText)
@@ -97,13 +158,18 @@ namespace CitizenMP.Server.Game
                 client.RemoteEP = remoteEP;
                 client.Socket = m_gameSocket;
 
-                var outString = string.Format("    connectOK {0} {1} {2}", client.NetID, (m_host != null) ? m_host.NetID : -1, (m_host != null) ? m_host.Base : -1);
-                var outMessage = Encoding.ASCII.GetBytes(outString);
-
-                outMessage[0] = 0xFF; outMessage[1] = 0xFF; outMessage[2] = 0xFF; outMessage[3] = 0xFF;
-
-                m_gameSocket.SendTo(outMessage, remoteEP);
+                SendOutOfBand(remoteEP, "connectOK {0} {1} {2}", client.NetID, (m_host != null) ? m_host.NetID : -1, (m_host != null) ? m_host.Base : -1);
             }
+        }
+
+        public void SendOutOfBand(IPEndPoint remoteEP, string text, params object[] data)
+        {
+            var outString = "    " + string.Format(text, data);
+            var outMessage = Encoding.UTF8.GetBytes(outString);
+
+            outMessage[0] = 0xFF; outMessage[1] = 0xFF; outMessage[2] = 0xFF; outMessage[3] = 0xFF;
+
+            m_gameSocket.SendTo(outMessage, remoteEP);
         }
 
         void ProcessClientMessage(Client client, BinaryReader reader)
@@ -527,7 +593,7 @@ namespace CitizenMP.Server.Game
             }
             catch (Exception ex)
             {
-                this.Log().Error(() => "receive failed", ex);
+                this.Log().Error(() => "incoming packet failed", ex);
             }
 
             // this may very well result in a stack overflow ;/

@@ -82,6 +82,7 @@
     <Compile Include="Formats\RPFFile.cs" />
     <Compile Include="Game\GameServer.cs" />
     <Compile Include="Game\NetChannel.cs" />
+    <Compile Include="Game\RconPrint.cs" />
     <Compile Include="HTTP\GetConfigurationMethod.cs" />
     <Compile Include="HTTP\HttpServer.cs" />
     <Compile Include="HTTP\InitConnectMethod.cs" />
@@ -89,6 +90,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources\EventScriptFunctions.cs" />
+    <Compile Include="Resources\RconScriptFunctions.cs" />
     <Compile Include="Resources\Resource.cs" />
     <Compile Include="Resources\ResourceManager.cs" />
     <Compile Include="Resources\ScriptEnvironment.cs" />

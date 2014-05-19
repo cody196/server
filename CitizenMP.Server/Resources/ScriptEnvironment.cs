@@ -133,42 +133,47 @@ namespace CitizenMP.Server.Resources
                 return;
             }
 
-            var L = m_luaNative;
-            LuaL.LuaPushNumber(L, source);
-            LuaL.LuaNetSetGlobal(L, "source");
-
-            var unpacker = (Func<string, LuaTable>)m_luaState.GetFunction(typeof(Func<string, LuaTable>), "msgpack.unpack");
-            var table = unpacker(argsSerialized);
-
-            var args = new object[table.Values.Count];
-            var i = 0;
-
-            foreach (var value in table.Values)
+            lock (m_luaState)
             {
-                args[i] = value;
-                i++;
-            }
+                var L = m_luaNative;
+                LuaL.LuaPushNumber(L, source);
+                LuaL.LuaNetSetGlobal(L, "source");
 
-            ms_currentEnvironment = this;
+                var unpacker = (Func<string, LuaTable>)m_luaState.GetFunction(typeof(Func<string, LuaTable>), "msgpack.unpack");
+                var table = unpacker(argsSerialized);
 
-            foreach (var handler in eventHandlers)
-            {
-                try
+                var args = new object[table.Values.Count];
+                var i = 0;
+
+                foreach (var value in table.Values)
                 {
-                    handler.Call(args);
+                    args[i] = value;
+                    i++;
                 }
-                catch (NLua.Exceptions.LuaException e)
+
+                ms_currentEnvironment = this;
+
+                foreach (var handler in eventHandlers)
                 {
-                    this.Log().Error(() => "Error executing event handler for event " + eventName + " in resource " + m_resource.Name + ": " + e.Message, e);
+                    try
+                    {
+                        handler.Call(args);
+                    }
+                    catch (NLua.Exceptions.LuaException e)
+                    {
+                        this.Log().Error(() => "Error executing event handler for event " + eventName + " in resource " + m_resource.Name + ": " + e.Message, e);
 
-                    eventHandlers.Clear();
-                    return;
+                        Game.RconPrint.Print("Error in resource {0}: {1}\n", m_resource.Name, e.Message);
+
+                        eventHandlers.Clear();
+                        return;
+                    }
                 }
+
+                table.Dispose();
+
+                ms_currentEnvironment = null;
             }
-
-            table.Dispose();
-
-            ms_currentEnvironment = null;
         }
 
         [LuaFunction("AddEventHandler")]

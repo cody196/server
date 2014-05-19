@@ -45,5 +45,143 @@ namespace CitizenMP.Server
                 }
             }
         }
+
+        public static string[] Tokenize(string text)
+        {
+            int i = 0;
+            int j = 0;
+            string[] args = new string[0];
+
+            while (true)
+            {
+                // skip whitespace and comments and such
+                while (true)
+                {
+                    // skip whitespace and control characters
+                    while (i < text.Length && text[i] <= ' ')
+                    {
+                        i++;
+                    }
+
+                    if (i >= text.Length)
+                    {
+                        return args;
+                    }
+
+                    // hopefully this will fix some errors
+                    if (i == 0)
+                    {
+                        break;
+                    }
+
+                    // skip comments
+                    if (text[i] == '/' && text[i + 1] == '/')
+                    {
+                        return args;
+                    }
+
+                    // /* comments
+                    if (text[i] == '/' && text[i + 1] == '*')
+                    {
+                        while (i < (text.Length - 1) && (text[i] != '*' || text[i + 1] != '/'))
+                        {
+                            i++;
+                        }
+
+                        if (i >= text.Length)
+                        {
+                            return args;
+                        }
+
+                        i += 2;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                Array.Resize(ref args, args.Length + 1);
+
+                StringBuilder arg = new StringBuilder();
+
+                // quoted strings
+                if (text[i] == '"')
+                {
+                    bool inEscape = false;
+
+                    while (true)
+                    {
+                        i++;
+
+                        if (i >= text.Length)
+                        {
+                            break;
+                        }
+
+                        if (text[i] == '"' && !inEscape)
+                        {
+                            break;
+                        }
+
+                        if (text[i] == '\\')
+                        {
+                            inEscape = true;
+                        }
+                        else
+                        {
+                            arg.Append(text[i]);
+                            inEscape = false;
+                        }
+                    }
+
+                    i++;
+
+                    args[j] = arg.ToString();
+                    j++;
+
+                    if (i >= text.Length)
+                    {
+                        return args;
+                    }
+
+                    continue;
+                }
+
+                // non-quoted strings
+                while (i < text.Length && text[i] > ' ')
+                {
+                    if (text[i] == '"')
+                    {
+                        break;
+                    }
+
+                    if (i < (text.Length - 1))
+                    {
+                        if (text[i] == '/' && text[i + 1] == '/')
+                        {
+                            break;
+                        }
+
+                        if (text[i] == '/' && text[i + 1] == '*')
+                        {
+                            break;
+                        }
+                    }
+
+                    arg.Append(text[i]);
+
+                    i++;
+                }
+
+                args[j] = arg.ToString();
+                j++;
+
+                if (i >= text.Length)
+                {
+                    return args;
+                }
+            }
+        }
     }
 }
