@@ -98,6 +98,8 @@ namespace CitizenMP.Server.Resources
                 res.AddDependant(Name);
             }
 
+            m_watcher = new FileSystemWatcher();
+
             if (!UpdateClientPackage())
             {
                 this.Log().Error("Couldn't update the client package.");
@@ -118,18 +120,40 @@ namespace CitizenMP.Server.Resources
             }
 
             // TODO: add development mode check
-            m_watcher = new FileSystemWatcher();
             m_watcher.Path = Path;
             m_watcher.IncludeSubdirectories = true;
             m_watcher.NotifyFilter = NotifyFilters.LastWrite;
-            m_watcher.Changed += (s, e) => UpdateClientPackage();
-            m_watcher.Created += (s, e) => UpdateClientPackage();
-            m_watcher.Deleted += (s, e) => UpdateClientPackage();
-            m_watcher.Renamed += (s, e) => UpdateClientPackage();
+            m_watcher.Changed += (s, e) => InvokeUpdateClientPackage();
+            m_watcher.Created += (s, e) => InvokeUpdateClientPackage();
+            m_watcher.Deleted += (s, e) => InvokeUpdateClientPackage();
+            m_watcher.Renamed += (s, e) => InvokeUpdateClientPackage();
 
             m_watcher.EnableRaisingEvents = true;
 
             State = ResourceState.Running;
+        }
+
+        private static bool ms_clientUpdateQueued;
+
+        private void InvokeUpdateClientPackage()
+        {
+            if (ms_clientUpdateQueued)
+            {
+                return;
+            }
+
+            ms_clientUpdateQueued = true;
+
+            Task.Run(async () =>
+            {
+                await Task.Delay(500);
+
+                // go
+                UpdateClientPackage();
+
+                // and unlock the lock
+                ms_clientUpdateQueued = false;
+            });
         }
 
         public void AddDependant(string name)
@@ -139,45 +163,48 @@ namespace CitizenMP.Server.Resources
 
         private bool UpdateClientPackage()
         {
-            try
+            lock (m_watcher)
             {
-                var requiredFiles = new List<string>() { "info.yml" };
-
-                // add all script files
-                requiredFiles.AddRange(Scripts);
-                requiredFiles.AddRange(AuxFiles);
-
-                // get the last-modified date of the current RPF and the cache
-                var rpfName = "cache/http-files/" + Name + ".rpf";
-
-                var modDate = requiredFiles.Select(a => System.IO.Path.Combine(Path, a)).Select(a => File.GetLastWriteTime(a)).OrderByDescending(a => a).First();
-                var rpfModDate = File.GetLastWriteTime(rpfName);
-
-                if (modDate > rpfModDate)
+                try
                 {
-                    // write the RPF
-                    if (!Directory.Exists("cache/http-files/"))
+                    var requiredFiles = new List<string>() { "info.yml" };
+
+                    // add all script files
+                    requiredFiles.AddRange(Scripts);
+                    requiredFiles.AddRange(AuxFiles);
+
+                    // get the last-modified date of the current RPF and the cache
+                    var rpfName = "cache/http-files/" + Name + ".rpf";
+
+                    var modDate = requiredFiles.Select(a => System.IO.Path.Combine(Path, a)).Select(a => File.GetLastWriteTime(a)).OrderByDescending(a => a).First();
+                    var rpfModDate = File.GetLastWriteTime(rpfName);
+
+                    if (modDate > rpfModDate)
                     {
-                        Directory.CreateDirectory("cache/http-files");
+                        // write the RPF
+                        if (!Directory.Exists("cache/http-files/"))
+                        {
+                            Directory.CreateDirectory("cache/http-files");
+                        }
+
+                        var rpf = new Formats.RPFFile();
+                        requiredFiles.ForEach(a => rpf.AddFile(a, File.ReadAllBytes(System.IO.Path.Combine(Path, a))));
+                        rpf.Write(rpfName);
                     }
 
-                    var rpf = new Formats.RPFFile();
-                    requiredFiles.ForEach(a => rpf.AddFile(a, File.ReadAllBytes(System.IO.Path.Combine(Path, a))));
-                    rpf.Write(rpfName);
+                    // and get the hash of the client package to store for ourselves (yes, we do this on every load; screw big RPF files, we're reading them anyway)
+                    var hash = Utils.GetFileSHA1String(rpfName);
+
+                    ClientPackageHash = hash;
+
+                    return true;
                 }
+                catch (Exception e)
+                {
+                    this.Log().Error(() => "Couldn't update the client package for " + Name + " - " + e.Message, e);
 
-                // and get the hash of the client package to store for ourselves (yes, we do this on every load; screw big RPF files, we're reading them anyway)
-                var hash = Utils.GetFileSHA1String(rpfName);
-
-                ClientPackageHash = hash;
-
-                return true;
-            }
-            catch (Exception e)
-            {
-                this.Log().Error(() => "Couldn't update the client package for " + Name + " - " + e.Message, e);
-
-                return false;
+                    return false;
+                }
             }
         }
 

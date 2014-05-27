@@ -36,7 +36,7 @@ namespace CitizenMP.Server.Formats
 
         public void AddFile(string name, byte[] data)
         {
-            if (data[0] == 'R' && data[1] == 'S' && data[2] == 'C')
+            if (data.Length >= 4 && data[0] == 'R' && data[1] == 'S' && data[2] == 'C')
             {
                 throw new InvalidOperationException("Resource files are currently not supported.");
             }
