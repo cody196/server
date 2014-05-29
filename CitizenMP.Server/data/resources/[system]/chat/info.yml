@@ -1,5 +1,6 @@
 info:
     description: chat management stuff
+    uiPage: html/chat.html
 
 exports:
     - printChatLine
@@ -9,3 +10,9 @@ scripts:
 
 serverScripts:
     - chat_server.lua
+
+auxFiles:
+    - html/chat.html
+    - html/chat.css
+    - html/chat.js
+    - html/jquery.faketextbox.js

@@ -1,0 +1,27 @@
+<html>
+<head>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script>
+$(function()
+{
+    setInterval(function()
+    {
+        $.post('http://chat/lovely', JSON.stringify({ a: 'b' }), function(b)
+        {
+            $('#a').css('background-color', '#fff').css('font-size', '500%').html(JSON.stringify(b));
+        });
+    }, 5000);
+});
+</script>
+
+<style type="text/css">
+body
+{
+    background-color: transparent;
+}
+</style>
+</head>
+<body>
+<div id="a"></div>
+</body>
+</html>
