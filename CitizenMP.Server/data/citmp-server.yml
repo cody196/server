@@ -8,3 +8,5 @@ AutoStartResources:
     - rconlog
 
 RconPassword: lovely
+
+PlatformServer: 192.168.178.83

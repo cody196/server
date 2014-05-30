@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using uhttpsharp;
 using uhttpsharp.Headers;
 using Newtonsoft.Json.Linq;
 
@@ -11,9 +12,9 @@ namespace CitizenMP.Server.HTTP
 {
     static class GetConfigurationMethod
     {
-        public static Func<IHttpHeaders, JObject> Get(Resources.ResourceManager resourceMgr)
+        public static Func<IHttpHeaders, IHttpContext, Task<JObject>> Get(Resources.ResourceManager resourceMgr)
         {
-            return (headers) =>
+            return (context, headers) =>
             {
                 var result = new JObject();
 
@@ -44,7 +45,10 @@ namespace CitizenMP.Server.HTTP
                 result["resources"] = resources;
                 result["fileServer"] = "http://%s/files/";
 
-                return result;
+                var source = new TaskCompletionSource<JObject>();
+                source.SetResult(result);
+
+                return source.Task;
             };
         }
     }

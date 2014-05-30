@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using NPSharp.NP;
+
 namespace CitizenMP.Server.Game
 {
     class GameServer
@@ -26,12 +28,32 @@ namespace CitizenMP.Server.Game
 
         private Configuration m_configuration;
 
-        public GameServer(Configuration config, Resources.ResourceManager resManager)
+        private NPClient m_platformClient;
+
+        public Configuration Configuration
+        {
+            get
+            {
+                return m_configuration;
+            }
+        }
+
+        public NPClient PlatformClient
+        {
+            get
+            {
+                return m_platformClient;
+            }
+        }
+
+        public GameServer(Configuration config, Resources.ResourceManager resManager, NPClient platformClient)
         {
             m_configuration = config;
 
             m_resourceManager = resManager;
             m_resourceManager.SetGameServer(this);
+
+            m_platformClient = platformClient;
 
             UseAsync = true;
         }

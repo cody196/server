@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
+using uhttpsharp;
 using uhttpsharp.Headers;
 using Newtonsoft.Json.Linq;
 
@@ -11,9 +13,9 @@ namespace CitizenMP.Server.HTTP
 {
     static class InitConnectMethod
     {
-        public static Func<IHttpHeaders, JObject> Get(Game.GameServer gameServer)
+        public static Func<IHttpHeaders, IHttpContext, Task<JObject>> Get(Game.GameServer gameServer)
         {
-            return (headers) =>
+            return async (headers, context) =>
             {
                 var result = new JObject();
 
@@ -25,6 +27,29 @@ namespace CitizenMP.Server.HTTP
                     result["err"] = "fields missing";
 
                     return result;
+                }
+
+                if (!gameServer.Configuration.DisableAuth)
+                {
+                    string authTicket;
+
+                    if (!headers.TryGetByName("authTicket", out authTicket))
+                    {
+                        result["authID"] = gameServer.PlatformClient.LoginId;
+
+                        return result;
+                    }
+
+                    var ipUInt = (uint)IPAddress.HostToNetworkOrder(BitConverter.ToInt32(((IPEndPoint)context.RemoteEndPoint).Address.GetAddressBytes(), 0));
+
+                    var authResult = await gameServer.PlatformClient.ValidateTicket(ipUInt, ulong.Parse(guid), Convert.FromBase64String(authTicket));
+
+                    if (!authResult)
+                    {
+                        result["error"] = "Invalid NPID sent.";
+
+                        return result;
+                    }
                 }
 
                 var client = new Client();

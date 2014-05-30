@@ -29,5 +29,7 @@ namespace CitizenMP.Server
         public string PlatformServer { get; set; }
 
         public int PlatformPort { get; set; }
+
+        public bool DisableAuth { get; set; }
     }
 }

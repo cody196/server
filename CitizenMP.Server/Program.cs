@@ -11,7 +11,7 @@ namespace CitizenMP.Server
 {
     class Program
     {
-        private async void Start(string configFileName)
+        private async Task Start(string configFileName)
         {
             Configuration config;
 
@@ -48,13 +48,25 @@ namespace CitizenMP.Server
             }
 
             // authenticate anonymously
-            await client.AuthenticateWithLicenseKey("");
+            var task = client.AuthenticateWithLicenseKey("");
+
+            if (!task.Wait(15000))
+            {
+                this.Log().Fatal("Could not authenticate anonymously to the configured platform server ({0}) - operation timed out.", platformServer);
+                return;
+            }
+
+            if (!task.Result)
+            {
+                this.Log().Fatal("Could not authenticate anonymously to the configured platform server ({0}).", platformServer);
+                return;
+            }
 
             var resManager = new Resources.ResourceManager();
             resManager.ScanResources("resources/");
 
             // initialize the game server
-            var gameServer = new Game.GameServer(config, resManager);
+            var gameServer = new Game.GameServer(config, resManager, client);
             gameServer.Start();
 
             // and initialize the HTTP server
@@ -97,7 +109,7 @@ namespace CitizenMP.Server
             LoggingExtensions.Logging.Log.InitializeWith<LoggingExtensions.NLog.NLogLog>();
 
             // start the program
-            new Program().Start((args.Length > 0) ? args[0] : null);
+            new Program().Start((args.Length > 0) ? args[0] : null).Wait();
         }
     }
 }

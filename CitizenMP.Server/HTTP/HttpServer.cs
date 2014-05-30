@@ -18,7 +18,7 @@ namespace CitizenMP.Server.HTTP
 {
     class HttpServer
     {
-        private Dictionary<string, Func<IHttpHeaders, JObject>> m_handlers;
+        private Dictionary<string, Func<IHttpHeaders, IHttpContext, Task<JObject>>> m_handlers;
 
         private Resources.ResourceManager m_resourceManager;
 
@@ -29,7 +29,7 @@ namespace CitizenMP.Server.HTTP
             m_configuration = config;
             m_resourceManager = resManager;
 
-            m_handlers = new Dictionary<string, Func<IHttpHeaders, JObject>>();
+            m_handlers = new Dictionary<string, Func<IHttpHeaders, IHttpContext, Task<JObject>>>();
 
             m_handlers["initconnect"] = InitConnectMethod.Get(resManager.GameServer);
             m_handlers["getconfiguration"] = GetConfigurationMethod.Get(resManager);
@@ -45,7 +45,7 @@ namespace CitizenMP.Server.HTTP
 
             httpServer.Use(new TcpListenerAdapter(new TcpListener(IPAddress.Any, m_configuration.ListenPort)));
 
-            httpServer.Use(new HttpRouter().With("client", new AnonymousHttpRequestHandler((context, next) =>
+            httpServer.Use(new HttpRouter().With("client", new AnonymousHttpRequestHandler(async (context, next) =>
             {
                 HttpResponseCode responseCode;
                 JObject result;
@@ -64,7 +64,7 @@ namespace CitizenMP.Server.HTTP
 
                     if (m_handlers.ContainsKey(method))
                     {
-                        result = m_handlers[method](postData);
+                        result = await m_handlers[method](postData, context);
                     }
                     else
                     {
@@ -77,7 +77,7 @@ namespace CitizenMP.Server.HTTP
 
                 context.Response = new HttpResponse(responseCode, "application/json", result.ToString(), true);
 
-                return Task.Factory.GetCompleted();
+                return;
             })).With("files", new AnonymousHttpRequestHandler((context, next) =>
             {
                 var urlParts = context.Request.Uri.OriginalString.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
