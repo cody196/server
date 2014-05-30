@@ -25,5 +25,9 @@ namespace CitizenMP.Server
         public string RconPassword { get; set; }
 
         public int ListenPort { get; set; }
+
+        public string PlatformServer { get; set; }
+
+        public int PlatformPort { get; set; }
     }
 }

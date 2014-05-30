@@ -5,11 +5,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using NPSharp.NP;
+
 namespace CitizenMP.Server
 {
     class Program
     {
-        private void Start(string configFileName)
+        private async void Start(string configFileName)
         {
             Configuration config;
 
@@ -34,6 +36,19 @@ namespace CitizenMP.Server
                 this.Log().Fatal("Could not open the configuration file {0}.", configFileName ?? "citmp-server.yml");
                 return;
             }
+
+            var platformServer = config.PlatformServer ?? "iv-platform.prod.citizen.re";
+            var client = new NPClient(platformServer, (config.PlatformPort == 0) ? (ushort)3036 : (ushort)config.PlatformPort);
+            var connectResult = client.Connect();
+
+            if (!connectResult)
+            {
+                this.Log().Fatal("Could not connect to the configured platform server ({0}).", platformServer);
+                return;
+            }
+
+            // authenticate anonymously
+            await client.AuthenticateWithLicenseKey("");
 
             var resManager = new Resources.ResourceManager();
             resManager.ScanResources("resources/");

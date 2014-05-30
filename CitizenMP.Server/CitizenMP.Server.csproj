@@ -110,6 +110,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Vendor\npsharp\src\client\NPSharp.Client.csproj">
+      <Project>{c6f941a5-82af-456a-9b3a-752e5b001035}</Project>
+      <Name>NPSharp.Client</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Vendor\uHttpSharp\uhttpsharp\uhttpsharp.csproj">
       <Project>{3d681959-4da3-4a71-a68b-704d6411d5ea}</Project>
       <Name>uhttpsharp</Name>
