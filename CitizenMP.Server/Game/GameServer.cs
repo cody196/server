@@ -142,7 +142,7 @@ namespace CitizenMP.Server.Game
 
             if (arguments.ContainsKey("token") && arguments.ContainsKey("guid"))
             {
-                var clientKV = ClientInstances.Clients.FirstOrDefault(cl => cl.Value.Guid == arguments["guid"] && cl.Value.Token == arguments["token"]);
+                var clientKV = ClientInstances.Clients.FirstOrDefault(cl => cl.Value.Guid == ulong.Parse(arguments["guid"]).ToString("x16") && cl.Value.Token == arguments["token"]);
 
                 if (clientKV.Equals(default(KeyValuePair<string,Client>)))
                 {
@@ -313,9 +313,9 @@ namespace CitizenMP.Server.Game
             m_hostVotes.Clear();
         }
 
-        private void BeforeDropClient(Client client)
+        private void BeforeDropClient(Client client, string reason = "")
         {
-            m_resourceManager.TriggerEvent("playerDropped", client.NetID);
+            m_resourceManager.TriggerEvent("playerDropped", client.NetID, reason);
 
             if (m_host != null && client.NetID == m_host.NetID)
             {
@@ -337,6 +337,13 @@ namespace CitizenMP.Server.Game
             }
         }
 
+        public void DropClient(Client client, string reason)
+        {
+            BeforeDropClient(client, reason);
+
+            ClientInstances.RemoveClient(client);
+        }
+
         private Dictionary<uint, int> m_hostVotes = new Dictionary<uint, int>();
 
         void HandleReliableCommand(Client client, uint messageType, BinaryReader reader, int size)
@@ -347,7 +354,7 @@ namespace CitizenMP.Server.Game
             {
                 this.Log().Info("Client {0} quit.", client.Name);
 
-                BeforeDropClient(client);
+                BeforeDropClient(client, "Quit message received");
 
                 ClientInstances.RemoveClient(client);
                 return;
@@ -705,7 +712,7 @@ namespace CitizenMP.Server.Game
 
             foreach (var client in toRemove)
             {
-                BeforeDropClient(client);
+                BeforeDropClient(client, "Timed out");
 
                 ClientInstances.RemoveClient(client);
             }

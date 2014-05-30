@@ -31,7 +31,7 @@ namespace CitizenMP.Server.HTTP
 
             m_handlers = new Dictionary<string, Func<IHttpHeaders, JObject>>();
 
-            m_handlers["initconnect"] = InitConnectMethod.Get();
+            m_handlers["initconnect"] = InitConnectMethod.Get(resManager.GameServer);
             m_handlers["getconfiguration"] = GetConfigurationMethod.Get(resManager);
         }
 

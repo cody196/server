@@ -139,7 +139,7 @@ function spawnPlayer(spawnIdx)
     ClearCharTasksImmediately(ped)
     SetCharHealth(ped, 300) -- TODO: allow configuration of this?
     RemoveAllCharWeapons(ped)
-    ClearWantedLevel(player)
+    ClearWantedLevel(GetPlayerId())
 
     -- why is this even a flag?
     SetCharWillFlyThroughWindscreen(ped, false)

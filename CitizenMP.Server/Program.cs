@@ -38,13 +38,13 @@ namespace CitizenMP.Server
             var resManager = new Resources.ResourceManager();
             resManager.ScanResources("resources/");
 
-            // initialize the HTTP server
-            var httpServer = new HTTP.HttpServer(config, resManager);
-            httpServer.Start();
-
-            // and the game server
+            // initialize the game server
             var gameServer = new Game.GameServer(config, resManager);
             gameServer.Start();
+
+            // and initialize the HTTP server
+            var httpServer = new HTTP.HttpServer(config, resManager);
+            httpServer.Start();
 
             // start resources
             foreach (var resource in config.AutoStartResources)

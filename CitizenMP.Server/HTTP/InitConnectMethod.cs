@@ -11,7 +11,7 @@ namespace CitizenMP.Server.HTTP
 {
     static class InitConnectMethod
     {
-        public static Func<IHttpHeaders, JObject> Get()
+        public static Func<IHttpHeaders, JObject> Get(Game.GameServer gameServer)
         {
             return (headers) =>
             {
@@ -30,8 +30,13 @@ namespace CitizenMP.Server.HTTP
                 var client = new Client();
                 client.Token = TokenGenerator.GenerateToken();
                 client.Name = name;
-                client.Guid = guid;
+                client.Guid = ulong.Parse(guid).ToString("x16");
                 client.Touch();
+
+                if (ClientInstances.Clients.ContainsKey(guid))
+                {
+                    gameServer.DropClient(ClientInstances.Clients[guid], "Duplicate GUID");
+                }
 
                 ClientInstances.AddClient(client);
 
