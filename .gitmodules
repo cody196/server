@@ -5,4 +5,4 @@
 
 [submodule "Vendor/npsharp"]
 	path = Vendor/npsharp
-	url = https://github.com/icedream/npsharp.git
+	url = http://tohjo.ez.lv/ntauthority/npsharp.git
