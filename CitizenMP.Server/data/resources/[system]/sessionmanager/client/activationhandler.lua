@@ -9,6 +9,17 @@ AddEventHandler('sessionInitialized', function()
             Wait(0)
         end
 
+        -- set some defaults
+        AllowGameToPauseForStreaming(true)
+
+        SetMaxWantedLevel(6)
+        SetWantedMultiplier(0.9999999)
+        SetCreateRandomCops(true)
+        SetDitchPoliceModels(false)
+
+        DisplayPlayerNames(true)
+        NetworkSetHealthReticuleOption(true)
+
         -- trigger an event on both the local client and the server
         TriggerEvent('playerActivated')
         TriggerServerEvent('playerActivated')

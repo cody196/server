@@ -24,7 +24,8 @@ CreateThread(function()
             end
 
             -- reinitialize the game as a network game (TODO: call into citigame for UI/NetLibrary leaving)
-            ShutdownAndLaunchNetworkGame(0) -- episode id is arg
+            --ShutdownAndLaunchNetworkGame(0) -- episode id is arg
+            ShutdownNetworkCit('Left');
         end
     end
 end)

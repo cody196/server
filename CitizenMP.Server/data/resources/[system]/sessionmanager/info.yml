@@ -8,5 +8,8 @@ scripts:
     - client/hostservice.lua
     - client/sessionstarter.lua
 
+exports:
+    - serviceHostStuff
+
 serverScripts:
     - server/host_lock.lua

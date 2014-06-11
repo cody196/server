@@ -97,6 +97,16 @@ local function freezePlayer(id, freeze)
     end
 end
 
+function loadScene(x, y, z)
+    StartLoadScene(x, y, z)
+
+    while not UpdateLoadScene() do
+        networkTimer = GetNetworkTimer(_i)
+
+        exports.sessionmanager:serviceHostStuff()
+    end
+end
+
 -- spawns the current player at a certain spawn point index (or a random one, for that matter)
 function spawnPlayer(spawnIdx)
     -- if the spawn isn't set, select a random one
@@ -127,6 +137,9 @@ function spawnPlayer(spawnIdx)
     -- change the player model
     ChangePlayerModel(GetPlayerId(), spawn.model)
 
+    -- release the player model
+    MarkModelAsNoLongerNeeded(spawn.model)
+
     -- preload collisions for the spawnpoint
     RequestCollisionAtPosn(spawn.x, spawn.y, spawn.z)
 
@@ -146,6 +159,13 @@ function spawnPlayer(spawnIdx)
 
     -- set primary camera heading
     SetGameCamHeading(spawn.heading)
+
+    -- load the scene; streaming expects us to do it
+    ForceLoadingScreen(true)
+    loadScene(spawn.x, spawn.y, spawn.z)
+    ForceLoadingScreen(false)
+
+    DoScreenFadeIn(500)
 
     -- and unfreeze the player
     freezePlayer(GetPlayerId(), false)
@@ -183,7 +203,4 @@ end)
 
 AddEventHandler('playerActivated', function()
     respawnForced = true
-
-    -- TEMPTEMP
-    DoScreenFadeIn(500)
 end)

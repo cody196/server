@@ -14,6 +14,9 @@ end)
 -- allow early script to create the player
 AddEventHandler('playerInfoCreated', function()
     CreateThread(function()
+        -- so that the game won't trigger the citizen disconnect handler
+        SafeguardDisconnect(true)
+
         -- 'find' games (this will store the host session in memory, or if no host exists, tell us later)
         NetworkFindGame(16, false, 0, 0)
 
@@ -84,6 +87,8 @@ AddEventHandler('playerInfoCreated', function()
 
             TriggerServerEvent('hostedSession')
         end
+
+        SafeguardDisconnect(false)
 
         SetLoadingText('Look at that!')
 

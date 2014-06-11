@@ -7,7 +7,7 @@ local names = {}
 AddEventHandler('playerActivated', function()
     RconLog({ msgType = 'playerActivated', netID = source, name = GetPlayerName(source), guid = GetPlayerGuid(source), ip = GetPlayerEP(source) })
 
-    names[source] = GetPlayerName(source)
+    names[source] = { name = GetPlayerName(source), id = source }
 
     TriggerClientEvent('rlUpdateNames', GetHostId())
 end)
@@ -22,14 +22,16 @@ AddEventHandler('rlUpdateNamesResult', function(res)
 
     for id, data in pairs(res) do
         if data then
-            if not names[id] then
-                names[id] = data
-            end
+            if data.name then
+                if not names[id] then
+                    names[id] = data
+                end
 
-            if names[id].name ~= data.name or names[id].id ~= data.id then
-                names[id] = data
+                if names[id].name ~= data.name or names[id].id ~= data.id then
+                    names[id] = data
 
-                RconLog({ msgType = 'playerRenamed', netID = id, name = data.name })
+                    RconLog({ msgType = 'playerRenamed', netID = id, name = data.name })
+                end
             end
         else
             names[id] = nil
@@ -53,6 +55,10 @@ AddEventHandler('rconCommand', function(commandName, args)
     end
 
     for netid, data in pairs(names) do
-        RconPrint(netid .. ' ' .. GetPlayerGuid(netid) .. ' ' .. data.name .. ' ' .. GetPlayerEP(netid) .. "\n")
+        local guid = GetPlayerGuid(netid)
+
+        if guid then
+            RconPrint(netid .. ' ' .. guid .. ' ' .. data.name .. ' ' .. GetPlayerEP(netid) .. "\n")
+        end
     end
 end)

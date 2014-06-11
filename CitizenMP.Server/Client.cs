@@ -49,30 +49,42 @@ namespace CitizenMP.Server
         {
             writer.Write(LastReceivedReliable);
 
-            var outReliableCommands = OutReliableCommands.GetRange(0, OutReliableCommands.Count);
-
-            foreach (var cmd in outReliableCommands)
+            lock (OutReliableCommands)
             {
-                writer.Write(cmd.Type);
+                var outReliableCommands = OutReliableCommands.GetRange(0, OutReliableCommands.Count);
 
-                if (cmd.Command.Length > ushort.MaxValue)
+                foreach (var cmd in outReliableCommands)
                 {
-                    writer.Write(cmd.ID | 0x80000000);
-                    writer.Write(cmd.Command.Length);
-                }
-                else
-                {
-                    writer.Write(cmd.ID);
-                    writer.Write((ushort)cmd.Command.Length);
-                }
+                    if (cmd.Command == null)
+                    {
+                        continue;
+                    }
 
-                writer.Write(cmd.Command);
+                    writer.Write(cmd.Type);
+
+                    if (cmd.Command.Length > ushort.MaxValue)
+                    {
+                        writer.Write(cmd.ID | 0x80000000);
+                        writer.Write(cmd.Command.Length);
+                    }
+                    else
+                    {
+                        writer.Write(cmd.ID);
+                        writer.Write((ushort)cmd.Command.Length);
+                    }
+
+                    writer.Write(cmd.Command);
+                }
             }
         }
 
         public void SendReliableCommand(uint commandType, byte[] commandData)
         {
-            OutReliableCommands.Add(new OutReliableCommand() { ID = OutReliableSequence + 1, Command = commandData, Type = commandType });
+            lock (OutReliableCommands)
+            {
+                OutReliableCommands.Add(new OutReliableCommand() { ID = OutReliableSequence + 1, Command = commandData, Type = commandType });
+            }
+
             OutReliableSequence++;
         }
 
@@ -85,7 +97,12 @@ namespace CitizenMP.Server
                 this.Log().Error("THIS IS BAD");
             }
 
-            Socket.SendTo(buffer, RemoteEP);
+            try
+            {
+                Socket.SendTo(buffer, RemoteEP);
+            }
+            catch (SocketException)
+            { }
         }
     }
 

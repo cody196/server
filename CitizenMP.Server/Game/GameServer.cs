@@ -46,6 +46,8 @@ namespace CitizenMP.Server.Game
             }
         }
 
+        private IPEndPoint m_serverList;
+
         public GameServer(Configuration config, Resources.ResourceManager resManager, NPClient platformClient)
         {
             m_configuration = config;
@@ -54,6 +56,16 @@ namespace CitizenMP.Server.Game
             m_resourceManager.SetGameServer(this);
 
             m_platformClient = platformClient;
+
+            var dnsEntry = Dns.GetHostEntry("refint.org");
+            
+            foreach (var address in dnsEntry.AddressList)
+            {
+                if (address.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    m_serverList = new IPEndPoint(address, 30110);
+                }
+            }
 
             UseAsync = true;
         }
@@ -98,6 +110,24 @@ namespace CitizenMP.Server.Game
             {
                 ProcessRconCommand(remoteEP, commandText);
             }
+            else if (command == "getinfo")
+            {
+                ProcessGetInfoCommand(remoteEP, commandText);
+            }
+        }
+
+        void ProcessGetInfoCommand(IPEndPoint remoteEP, string commandText)
+        {
+            var command = Utils.Tokenize(commandText);
+
+            if (command.Length < 2)
+            {
+                return;
+            }
+
+            SendOutOfBand(remoteEP, "infoResponse\n\\sv_maxclients\\32\\clients\\{0}\\challenge\\{1}\\gamename\\GTA4\\protocol\\1\\hostname\\{2}", ClientInstances.Clients.Count(cl => cl.Value.RemoteEP != null), command[1], m_configuration.Hostname ?? "CitizenMP");
+
+            m_nextHeartbeatTime = m_serverTime + (120 * 1000);
         }
 
         private Dictionary<IPEndPoint, int> m_lastRconTimes = new Dictionary<IPEndPoint, int>();
@@ -181,6 +211,8 @@ namespace CitizenMP.Server.Game
                 client.Socket = m_gameSocket;
 
                 SendOutOfBand(remoteEP, "connectOK {0} {1} {2}", client.NetID, (m_host != null) ? m_host.NetID : -1, (m_host != null) ? m_host.Base : -1);
+
+                m_nextHeartbeatTime = m_serverTime + 500;
             }
         }
 
@@ -191,7 +223,11 @@ namespace CitizenMP.Server.Game
 
             outMessage[0] = 0xFF; outMessage[1] = 0xFF; outMessage[2] = 0xFF; outMessage[3] = 0xFF;
 
-            m_gameSocket.SendTo(outMessage, remoteEP);
+            try
+            {
+                m_gameSocket.SendTo(outMessage, remoteEP);
+            }
+            catch (SocketException) { }
         }
 
         void ProcessClientMessage(Client client, BinaryReader reader)
@@ -337,6 +373,8 @@ namespace CitizenMP.Server.Game
 
         private void BeforeDropClient(Client client, string reason = "")
         {
+            m_nextHeartbeatTime = m_serverTime + 500;
+
             m_resourceManager.TriggerEvent("playerDropped", client.NetID, reason);
 
             if (m_host != null && client.NetID == m_host.NetID)
@@ -713,6 +751,13 @@ namespace CitizenMP.Server.Game
 
         private int m_lastSenselessReliableSent;
 
+        private int m_nextHeartbeatTime;
+
+        private void SendHeartbeat()
+        {
+            SendOutOfBand(m_serverList, "heartbeat DarkPlaces\n");
+        }
+
         private void ProcessServerFrame()
         {
             // process client timeouts
@@ -747,6 +792,12 @@ namespace CitizenMP.Server.Game
                 sendSenselessReliable = true;
 
                 m_lastSenselessReliableSent = m_serverTime;
+            }
+
+            // send a heartbeat?
+            if (m_serverTime > m_nextHeartbeatTime)
+            {
+                SendHeartbeat();
             }
 
             // and then just send reliable buffers

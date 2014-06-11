@@ -6,6 +6,7 @@ AutoStartResources:
     - spawnmanager
     - chat
     - rconlog
+    - betaguns
 
 RconPassword: lovely
 

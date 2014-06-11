@@ -1,0 +1,5 @@
+scripts:
+    - client.lua
+
+serverScripts:
+    - server.lua
