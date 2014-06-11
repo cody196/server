@@ -22,9 +22,10 @@ namespace CitizenMP.Server.Game
         public NetChannel(Client client)
         {
             m_client = client;
+            m_fragmentSequence = 0xFFFFFFFF;
         }
 
-        public bool Process(byte[] buffer, ref BinaryReader reader)
+        public bool Process(byte[] buffer, int length, ref BinaryReader reader)
         {
             var sequence = BitConverter.ToUInt32(buffer, 0);
 
@@ -70,12 +71,15 @@ namespace CitizenMP.Server.Game
                     return false;
                 }
 
-                m_fragmentBuffer.Write(buffer, 8, buffer.Length - 8);
+                m_fragmentBuffer.Write(buffer, 8, length - 8);
+                m_fragmentLength = (int)m_fragmentBuffer.Length;
 
                 if (fragmentLength == FRAGMENT_SIZE)
                 {
                     return false;
                 }
+
+                m_fragmentBuffer.Position = 0;
 
                 m_inSequence = sequence;
                 m_fragmentLength = 0;

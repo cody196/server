@@ -92,7 +92,7 @@ namespace CitizenMP.Server
         {
             //this.Log().Debug("sending {0}-byte packet to {1}", buffer.Length, NetID);
 
-            if (buffer.Length > 1024)
+            if (buffer.Length > 1400)
             {
                 this.Log().Error("THIS IS BAD");
             }

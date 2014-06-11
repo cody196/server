@@ -643,7 +643,7 @@ namespace CitizenMP.Server.Game
 
                     var client = clientKV.Value;
 
-                    if (client.NetChannel.Process(buffer, ref reader))
+                    if (client.NetChannel.Process(buffer, length, ref reader))
                     {
                         ProcessClientMessage(client, reader);
                     }
