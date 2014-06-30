@@ -63,10 +63,14 @@ namespace CitizenMP.Server
             }
 
             var resManager = new Resources.ResourceManager();
+
+            // create the game server (as resource scanning needs it now)
+            var gameServer = new Game.GameServer(config, resManager, client);
+
+            // scan resources
             resManager.ScanResources("resources/");
 
-            // initialize the game server
-            var gameServer = new Game.GameServer(config, resManager, client);
+            // start the game server
             gameServer.Start();
 
             // and initialize the HTTP server

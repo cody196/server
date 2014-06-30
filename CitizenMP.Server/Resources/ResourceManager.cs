@@ -47,6 +47,7 @@ namespace CitizenMP.Server.Resources
         public Resource AddResource(string name, string path)
         {
             var res = new Resource(name, path);
+            res.Manager = this;
 
             if (res.Parse())
             {
@@ -67,8 +68,6 @@ namespace CitizenMP.Server.Resources
 
         public void AddResource(Resource res)
         {
-            res.Manager = this;
-
             m_resources[res.Name] = res;
         }
 

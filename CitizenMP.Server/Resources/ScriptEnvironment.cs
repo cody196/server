@@ -61,7 +61,7 @@ namespace CitizenMP.Server.Resources
 
             foreach (var type in types)
             {
-                var methods = type.GetMethods(BindingFlags.Static | BindingFlags.NonPublic);
+                var methods = type.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
 
                 foreach (var method in methods)
                 {
@@ -105,13 +105,33 @@ namespace CitizenMP.Server.Resources
                 m_luaState.DoFile("system/MessagePack.lua");
                 m_luaState.DoFile("system/dkjson.lua");
 
+                return true;
+            }
+            catch (Exception e)
+            {
+                this.Log().Error(() => "Error creating script environment for resource " + m_resource.Name + ": " + e.Message, e);
+            }
+            finally
+            {
+                ms_currentEnvironment = null;
+            }
+
+            return false;
+        }
+
+        public LuaFunction InitHandler { get; set; }
+
+        public bool LoadScripts()
+        {
+            try
+            {
+                ms_currentEnvironment = this;
+
                 // load scripts defined in this resource
                 foreach (var script in m_resource.ServerScripts)
                 {
                     m_luaState.DoFile(Path.Combine(m_resource.Path, script));
                 }
-
-                ms_currentEnvironment = null;
 
                 return true;
             }
@@ -119,8 +139,34 @@ namespace CitizenMP.Server.Resources
             {
                 this.Log().Error(() => "Error creating script environment for resource " + m_resource.Name + ": " + e.Message, e);
             }
+            finally
+            {
+                ms_currentEnvironment = null;
+            }
 
-            ms_currentEnvironment = null;
+            return false;
+        }
+
+        public bool DoInitFile(bool preParse)
+        {
+            try
+            {
+                ms_currentEnvironment = this;
+
+                var initFunction = m_luaState.LoadFile(Path.Combine(m_resource.Path, "__resource.lua"));
+
+                InitHandler.Call(initFunction, preParse);
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                this.Log().Error(() => "Error creating script environment for resource " + m_resource.Name + ": " + e.Message, e);
+            }
+            finally
+            {
+                ms_currentEnvironment = null;
+            }
 
             return false;
         }

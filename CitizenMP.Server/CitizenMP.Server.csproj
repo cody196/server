@@ -96,6 +96,7 @@
     <Compile Include="Resources\Resource.cs" />
     <Compile Include="Resources\ResourceManager.cs" />
     <Compile Include="Resources\ScriptEnvironment.cs" />
+    <Compile Include="Resources\VMInitScriptFunctions.cs" />
     <Compile Include="TokenGenerator.cs" />
     <Compile Include="Utils.cs" />
   </ItemGroup>

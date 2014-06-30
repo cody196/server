@@ -125,7 +125,7 @@ namespace CitizenMP.Server.Game
                 return;
             }
 
-            SendOutOfBand(remoteEP, "infoResponse\n\\sv_maxclients\\32\\clients\\{0}\\challenge\\{1}\\gamename\\GTA4\\protocol\\1\\hostname\\{2}", ClientInstances.Clients.Count(cl => cl.Value.RemoteEP != null), command[1], m_configuration.Hostname ?? "CitizenMP");
+            SendOutOfBand(remoteEP, "infoResponse\n\\sv_maxclients\\32\\clients\\{0}\\challenge\\{1}\\gamename\\GTA4\\protocol\\2\\hostname\\{2}", ClientInstances.Clients.Count(cl => cl.Value.RemoteEP != null), command[1], m_configuration.Hostname ?? "CitizenMP");
 
             m_nextHeartbeatTime = m_serverTime + (120 * 1000);
         }

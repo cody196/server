@@ -40,35 +40,42 @@ namespace CitizenMP.Server.Resources
 
         public bool Parse()
         {
-            try
+            if (!EnsureScriptEnvironment())
             {
-                // create path and read the file
-                var infoPath = System.IO.Path.Combine(Path, "info.yml");
-
-                var buffer = File.ReadAllText(infoPath);
-
-                var deserializer = new Deserializer(ignoreUnmatched: true);
-                var data = deserializer.Deserialize<ResourceData>(new StringReader(buffer));
-
-                Info = data.info ?? new Dictionary<string, string>();
-                Dependencies = data.dependencies ?? new List<string>();
-                Exports = data.exports ?? new List<string>();
-                Scripts = data.scripts ?? new List<string>();
-                AuxFiles = data.auxFiles ?? new List<string>();
-                ServerScripts = data.serverScripts ?? new List<string>();
-
-                return true;
-            }
-            catch (FileNotFoundException)
-            {
-                this.Log().Error("Could not find the info file for resource {0}.", Name);
-            }
-            catch (Exception e)
-            {
-                this.Log().Error(() => "Could not parse resource information for resource " + Name + ".", e);
+                return false;
             }
 
-            return false;
+            Info = new Dictionary<string, string>();
+            Dependencies = new List<string>();
+            Exports = new List<string>();
+            Scripts = new List<string>();
+            AuxFiles = new List<string>();
+            ServerScripts = new List<string>();
+
+            return ParseInfoFile();
+        }
+
+        private bool EnsureScriptEnvironment()
+        {
+            if (m_scriptEnvironment == null)
+            {
+                m_scriptEnvironment = new ScriptEnvironment(this);
+
+                if (!m_scriptEnvironment.Create())
+                {
+                    this.Log().Error("Resource {0} caused an error during loading. Please see the above lines for details.", Name);
+
+                    State = ResourceState.Error;
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool ParseInfoFile()
+        {
+            return m_scriptEnvironment.DoInitFile(true);
         }
 
         public void Start()
@@ -109,15 +116,13 @@ namespace CitizenMP.Server.Resources
             }
 
             // create script environment
-            m_scriptEnvironment = new ScriptEnvironment(this);
-
-            if (!m_scriptEnvironment.Create())
+            if (!EnsureScriptEnvironment())
             {
-                this.Log().Error("Resource {0} caused an error during loading. Please see the above lines for details.", Name);
-
-                State = ResourceState.Error;
                 return;
             }
+
+            m_scriptEnvironment.DoInitFile(false);
+            m_scriptEnvironment.LoadScripts();
 
             // TODO: add development mode check
             m_watcher.Path = Path;
@@ -167,7 +172,7 @@ namespace CitizenMP.Server.Resources
             {
                 try
                 {
-                    var requiredFiles = new List<string>() { "info.yml" };
+                    var requiredFiles = new List<string>() { "__resource.lua" };
 
                     // add all script files
                     requiredFiles.AddRange(Scripts);
@@ -188,7 +193,7 @@ namespace CitizenMP.Server.Resources
                         }
 
                         var rpf = new Formats.RPFFile();
-                        requiredFiles.ForEach(a => rpf.AddFile(a, File.ReadAllBytes(System.IO.Path.Combine(Path, a))));
+                        requiredFiles.Where(a => File.Exists(System.IO.Path.Combine(Path, a))).ToList().ForEach(a => rpf.AddFile(a, File.ReadAllBytes(System.IO.Path.Combine(Path, a))));
                         rpf.Write(rpfName);
                     }
 
