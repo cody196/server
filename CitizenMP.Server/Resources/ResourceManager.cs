@@ -107,19 +107,7 @@ namespace CitizenMP.Server.Resources
         public void TriggerEvent(string eventName, int source, params object[] args)
         {
             // convert the arguments to an object each
-            var stream = new MemoryStream();
-            var packer = MsgPack.Packer.Create(stream);
-
-            packer.PackArrayHeader(args.Length);
-
-            for (int i = 0; i < args.Length; i++)
-            {
-                var mpo = MsgPack.Serialization.MessagePackSerializer.Create(args[i].GetType());
-                mpo.PackTo(packer, args[i]);
-            }
-
-            // make it into a string for lua
-            var array = stream.ToArray();
+            var array = Utils.SerializeEvent(args);
             var sb = new StringBuilder(array.Length);
 
             foreach (var b in array)

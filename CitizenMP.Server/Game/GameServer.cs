@@ -30,6 +30,12 @@ namespace CitizenMP.Server.Game
 
         private NPClient m_platformClient;
 
+        public Commands.CommandManager CommandManager
+        {
+            get;
+            private set;
+        }
+
         public Configuration Configuration
         {
             get
@@ -46,11 +52,22 @@ namespace CitizenMP.Server.Game
             }
         }
 
+        public Resources.ResourceManager ResourceManager
+        {
+            get
+            {
+                return m_resourceManager;
+            }
+        }
+
         private IPEndPoint m_serverList;
 
-        public GameServer(Configuration config, Resources.ResourceManager resManager, NPClient platformClient)
+        public GameServer(Configuration config, Resources.ResourceManager resManager, Commands.CommandManager commandManager, NPClient platformClient)
         {
             m_configuration = config;
+
+            commandManager.SetGameServer(this);
+            CommandManager = commandManager;
 
             m_resourceManager = resManager;
             m_resourceManager.SetGameServer(this);
@@ -168,14 +185,17 @@ namespace CitizenMP.Server.Game
                 {
                     var arguments = command.Skip(3).ToList();
 
-                    try
+                    if (!CommandManager.HandleCommand(command[2], arguments))
                     {
-                        m_resourceManager.TriggerEvent("rconCommand", -1, command[2], arguments);
-                    }
-                    catch (Exception e)
-                    {
-                        this.Log().Error(() => "error handling rcon: " + e.Message, e);
-                        RconPrint.Print(e.Message);
+                        try
+                        {
+                            m_resourceManager.TriggerEvent("rconCommand", -1, command[2], arguments);
+                        }
+                        catch (Exception e)
+                        {
+                            this.Log().Error(() => "error handling rcon: " + e.Message, e);
+                            RconPrint.Print(e.Message);
+                        }
                     }
                 }
             }
@@ -537,6 +557,26 @@ namespace CitizenMP.Server.Game
             }
 
             TriggerClientEvent(eventName, dataArray, targetNetID, sourceNetID);
+        }
+
+        public void TriggerClientEvent(string eventName, int targetNetID, params object[] arguments)
+        {
+            var array = Utils.SerializeEvent(arguments);
+
+            if (targetNetID >= 0)
+            {
+                TriggerClientEvent(eventName, array, targetNetID, -1);
+            }
+            else
+            {
+                foreach (var client in ClientInstances.Clients)
+                {
+                    if (client.Value.NetChannel != null)
+                    {
+                        TriggerClientEvent(eventName, array, client.Value.NetID, -1);
+                    }
+                }
+            }
         }
 
         public void TriggerClientEvent(string eventName, byte[] data, int targetNetID, int sourceNetID)

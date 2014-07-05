@@ -14,7 +14,7 @@ namespace CitizenMP.Server.HTTP
     {
         public static Func<IHttpHeaders, IHttpContext, Task<JObject>> Get(Resources.ResourceManager resourceMgr)
         {
-            return (context, headers) =>
+            return (headers, context) =>
             {
                 var result = new JObject();
 
@@ -30,7 +30,17 @@ namespace CitizenMP.Server.HTTP
 
                 var resources = new JArray();
 
-                foreach (var resource in resourceMgr.GetRunningResources())
+                var resourceSource = resourceMgr.GetRunningResources();
+                string resourceFilter;
+
+                if (headers.TryGetByName("resources", out resourceFilter))
+                {
+                    var resourceNames = resourceFilter.Split(';');
+
+                    resourceSource = resourceSource.Where(r => resourceNames.Contains(r.Name));
+                }
+
+                foreach (var resource in resourceSource)
                 {
                     var files = new JObject();
                     files["resource.rpf"] = resource.ClientPackageHash;

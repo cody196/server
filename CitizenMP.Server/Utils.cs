@@ -183,5 +183,22 @@ namespace CitizenMP.Server
                 }
             }
         }
+
+        public static byte[] SerializeEvent(object[] args)
+        {
+            var stream = new MemoryStream();
+            var packer = MsgPack.Packer.Create(stream);
+
+            packer.PackArrayHeader(args.Length);
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                var mpo = MsgPack.Serialization.MessagePackSerializer.Create(args[i].GetType());
+                mpo.PackTo(packer, args[i]);
+            }
+
+            // make it into a string for lua
+            return stream.ToArray();
+        }
     }
 }

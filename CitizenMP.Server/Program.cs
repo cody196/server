@@ -62,10 +62,11 @@ namespace CitizenMP.Server
                 return;
             }
 
+            var commandManager = new Commands.CommandManager();
             var resManager = new Resources.ResourceManager();
 
             // create the game server (as resource scanning needs it now)
-            var gameServer = new Game.GameServer(config, resManager, client);
+            var gameServer = new Game.GameServer(config, resManager, commandManager, client);
 
             // scan resources
             resManager.ScanResources("resources/");

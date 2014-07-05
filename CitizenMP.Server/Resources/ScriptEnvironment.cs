@@ -12,7 +12,7 @@ using LuaL = KeraLua.Lua;
 
 namespace CitizenMP.Server.Resources
 {
-    class ScriptEnvironment
+    class ScriptEnvironment : IDisposable
     {
         private Resource m_resource;
         private LuaState m_luaNative;
@@ -117,6 +117,17 @@ namespace CitizenMP.Server.Resources
             }
 
             return false;
+        }
+
+        public void Dispose()
+        {
+            if (ms_currentEnvironment == this)
+            {
+                throw new InvalidOperationException("Tried to dispose the current script environment");
+            }
+
+            m_luaState.Close();
+            m_luaState.Dispose();
         }
 
         public LuaFunction InitHandler { get; set; }

@@ -135,7 +135,45 @@ namespace CitizenMP.Server.Resources
 
             m_watcher.EnableRaisingEvents = true;
 
+            // broadcast to current clients
+            var clients = ClientInstances.Clients.Where(c => c.Value.NetChannel != null).Select(c => c.Value);
+
+            foreach (var client in clients)
+            {
+                client.SendReliableCommand(0xAFE4CD4A, Encoding.UTF8.GetBytes(Name)); // msgResStart
+            }
+
             State = ResourceState.Running;
+        }
+
+        public void Stop()
+        {
+            if (State != ResourceState.Running)
+            {
+                throw new InvalidOperationException("Tried to stop a resource that wasn't running.");
+            }
+
+            foreach (var dependant in Dependants)
+            {
+                var dependantResource = Manager.GetResource(dependant);
+
+                dependantResource.Stop();
+            }
+
+            // dispose of the script environment
+            m_scriptEnvironment.Dispose();
+            m_scriptEnvironment = null;
+
+            // broadcast a stop message to all clients
+            var clients = ClientInstances.Clients.Where(c => c.Value.NetChannel != null).Select(c => c.Value);
+
+            foreach (var client in clients)
+            {
+                client.SendReliableCommand(0x45E855D7, Encoding.UTF8.GetBytes(Name)); // msgResStop
+            }
+
+            // done!
+            State = ResourceState.Stopped;
         }
 
         private static bool ms_clientUpdateQueued;

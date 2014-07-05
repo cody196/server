@@ -76,6 +76,8 @@
   <ItemGroup>
     <Compile Include="Client.cs" />
     <Compile Include="ClientInstances.cs" />
+    <Compile Include="Commands\CommandManager.cs" />
+    <Compile Include="Commands\ResourceCommands.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="Formats\MarkedBinaryWriter.cs" />
     <Compile Include="Formats\RPFEntry.cs" />
