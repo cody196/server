@@ -135,6 +135,8 @@ namespace CitizenMP.Server.Resources
 
             m_watcher.EnableRaisingEvents = true;
 
+            State = ResourceState.Running;
+
             // broadcast to current clients
             var clients = ClientInstances.Clients.Where(c => c.Value.NetChannel != null).Select(c => c.Value);
 
@@ -142,8 +144,6 @@ namespace CitizenMP.Server.Resources
             {
                 client.SendReliableCommand(0xAFE4CD4A, Encoding.UTF8.GetBytes(Name)); // msgResStart
             }
-
-            State = ResourceState.Running;
         }
 
         public void Stop()
