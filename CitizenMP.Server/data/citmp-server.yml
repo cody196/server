@@ -7,6 +7,7 @@ AutoStartResources:
     - chat
     - rconlog
     - betaguns
+    - keks
 
 RconPassword: lovely
 

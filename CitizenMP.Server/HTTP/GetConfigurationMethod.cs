@@ -55,6 +55,9 @@ namespace CitizenMP.Server.HTTP
                 result["resources"] = resources;
                 result["fileServer"] = "http://%s/files/";
 
+                //result["loadScreen"] = "http://www.google.com/";
+                result["loadScreen"] = "nui://keks/index.html";
+
                 var source = new TaskCompletionSource<JObject>();
                 source.SetResult(result);
 
