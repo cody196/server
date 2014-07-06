@@ -73,5 +73,39 @@ namespace CitizenMP.Server.Commands
                 Game.RconPrint.Print("Error starting resource {0}: {1}.\n", resourceName, e.Message);
             }
         }
+
+        [ConsoleCommand("restart")]
+        static void Restart_f(CommandManager manager, string command, string[] args)
+        {
+            var resourceName = args[0];
+            var resourceManager = manager.GameServer.ResourceManager;
+
+            var resource = resourceManager.GetResource(resourceName);
+
+            if (resource == null)
+            {
+                Game.RconPrint.Print("No such resource: {0}.\n", resourceName);
+                return;
+            }
+
+            if (resource.State != Resources.ResourceState.Running)
+            {
+                Game.RconPrint.Print("Resource isn't running: {0}.\n", resourceName);
+                return;
+            }
+
+            try
+            {
+                resource.Stop();
+                resource.Start();
+
+                Game.RconPrint.Print("restart {0}\n", resourceName);
+            }
+            catch (Exception e)
+            {
+                resource.Log().Error(() => "Error restarting resource.", e);
+                Game.RconPrint.Print("Error restarting resource {0}: {1}.\n", resourceName, e.Message);
+            }
+        }
     }
 }
