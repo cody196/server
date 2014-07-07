@@ -163,7 +163,7 @@ namespace CitizenMP.Server.Resources
                 throw new InvalidOperationException("Tried to stop a resource that wasn't running.");
             }
 
-            if (Manager.TriggerEvent("onResourceStop", -1, Name))
+            if (!Manager.TriggerEvent("onResourceStop", -1, Name))
             {
                 return false;
             }
