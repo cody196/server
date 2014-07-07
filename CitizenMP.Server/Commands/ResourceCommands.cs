@@ -30,7 +30,11 @@ namespace CitizenMP.Server.Commands
 
             try
             {
-                resource.Stop();
+                if (!resource.Stop())
+                {
+                    Game.RconPrint.Print("err stop {0}\n", resourceName);
+                    return;
+                }
 
                 Game.RconPrint.Print("stop {0}\n", resourceName);
             }
@@ -63,7 +67,11 @@ namespace CitizenMP.Server.Commands
 
             try
             {
-                resource.Start();
+                if (!resource.Start())
+                {
+                    Game.RconPrint.Print("err start {0}\n", resourceName);
+                    return;
+                }
 
                 Game.RconPrint.Print("start {0}\n", resourceName);
             }
@@ -96,8 +104,12 @@ namespace CitizenMP.Server.Commands
 
             try
             {
-                resource.Stop();
-                resource.Start();
+                if (!resource.Stop() || !resource.Start())
+                {
+                    Game.RconPrint.Print("err restart {0}\n", resourceName);
+
+                    return;
+                }
 
                 Game.RconPrint.Print("restart {0}\n", resourceName);
             }
