@@ -11,6 +11,18 @@ namespace CitizenMP.Server.Resources
 {
     class EventScriptFunctions
     {
+        [LuaFunction("CancelEvent")]
+        static void CancelEvent_f()
+        {
+            ScriptEnvironment.CurrentEnvironment.Resource.Manager.CancelEvent();
+        }
+
+        [LuaFunction("WasEventCanceled")]
+        static bool WasEventCanceled_f()
+        {
+            return ScriptEnvironment.CurrentEnvironment.Resource.Manager.WasEventCanceled();
+        }
+
         [LuaFunction("TriggerEvent")]
         static void TriggerEvent_f(string eventName, params object[] args)
         {

@@ -104,7 +104,7 @@ namespace CitizenMP.Server.Resources
             }
         }
 
-        public void TriggerEvent(string eventName, int source, params object[] args)
+        public bool TriggerEvent(string eventName, int source, params object[] args)
         {
             // convert the arguments to an object each
             var array = Utils.SerializeEvent(args);
@@ -116,15 +116,38 @@ namespace CitizenMP.Server.Resources
             }
 
             // and trigger the event
-            TriggerEvent(eventName, sb.ToString(), source);
+            return TriggerEvent(eventName, sb.ToString(), source);
         }
 
-        public void TriggerEvent(string eventName, string argsSerialized, int source)
+        private Stack<bool> m_eventCancelationState = new Stack<bool>();
+        private bool m_eventCanceled;
+
+        public bool TriggerEvent(string eventName, string argsSerialized, int source)
         {
-            foreach (var resource in m_resources)
+            lock (m_eventCancelationState)
             {
-                resource.Value.TriggerEvent(eventName, argsSerialized, source);
+                m_eventCancelationState.Push(false);
+
+                foreach (var resource in m_resources)
+                {
+                    resource.Value.TriggerEvent(eventName, argsSerialized, source);
+                }
+
+                m_eventCanceled = m_eventCancelationState.Pop();
             }
+
+            return m_eventCanceled;
+        }
+
+        public bool WasEventCanceled()
+        {
+            return m_eventCanceled;
+        }
+
+        public void CancelEvent()
+        {
+            m_eventCancelationState.Pop();
+            m_eventCancelationState.Push(true);
         }
     }
 }
