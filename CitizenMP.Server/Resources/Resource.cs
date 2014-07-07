@@ -78,11 +78,11 @@ namespace CitizenMP.Server.Resources
             return m_scriptEnvironment.DoInitFile(true);
         }
 
-        public void Start()
+        public bool Start()
         {
             if (State == ResourceState.Running)
             {
-                return;
+                return true;
             }
 
             if (State != ResourceState.Stopped)
@@ -98,7 +98,7 @@ namespace CitizenMP.Server.Resources
                 if (res == null)
                 {
                     this.Log().Warn("Can't resolve dependency {0} from resource {1}.", dep, Name);
-                    return;
+                    return false;
                 }
 
                 res.Start();
@@ -112,13 +112,13 @@ namespace CitizenMP.Server.Resources
                 this.Log().Error("Couldn't update the client package.");
 
                 State = ResourceState.Error;
-                return;
+                return false;
             }
 
             // create script environment
             if (!EnsureScriptEnvironment())
             {
-                return;
+                return false;
             }
 
             m_scriptEnvironment.DoInitFile(false);
@@ -137,6 +137,14 @@ namespace CitizenMP.Server.Resources
 
             State = ResourceState.Running;
 
+            // trigger event
+            if (!Manager.TriggerEvent("onResourceStart", -1, Name))
+            {
+                Stop();
+
+                return false;
+            }
+
             // broadcast to current clients
             var clients = ClientInstances.Clients.Where(c => c.Value.NetChannel != null).Select(c => c.Value);
 
@@ -144,13 +152,20 @@ namespace CitizenMP.Server.Resources
             {
                 client.SendReliableCommand(0xAFE4CD4A, Encoding.UTF8.GetBytes(Name)); // msgResStart
             }
+
+            return true;
         }
 
-        public void Stop()
+        public bool Stop()
         {
             if (State != ResourceState.Running)
             {
                 throw new InvalidOperationException("Tried to stop a resource that wasn't running.");
+            }
+
+            if (Manager.TriggerEvent("onResourceStop", -1, Name))
+            {
+                return false;
             }
 
             foreach (var dependant in Dependants)
@@ -174,6 +189,8 @@ namespace CitizenMP.Server.Resources
 
             // done!
             State = ResourceState.Stopped;
+
+            return true;
         }
 
         private static bool ms_clientUpdateQueued;
