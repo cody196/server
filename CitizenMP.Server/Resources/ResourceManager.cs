@@ -136,7 +136,7 @@ namespace CitizenMP.Server.Resources
                 m_eventCanceled = m_eventCancelationState.Pop();
             }
 
-            return m_eventCanceled;
+            return !m_eventCanceled;
         }
 
         public bool WasEventCanceled()
