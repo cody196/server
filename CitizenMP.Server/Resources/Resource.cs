@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Newtonsoft.Json.Linq;
+
 using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 
@@ -36,6 +38,7 @@ namespace CitizenMP.Server.Resources
             Path = path;
             State = ResourceState.Stopped;
             Dependants = new List<string>();
+            StreamEntries = new Dictionary<string, StreamCacheEntry>();
         }
 
         public bool Parse()
@@ -110,6 +113,14 @@ namespace CitizenMP.Server.Resources
             if (!UpdateClientPackage())
             {
                 this.Log().Error("Couldn't update the client package.");
+
+                State = ResourceState.Error;
+                return false;
+            }
+
+            if (!UpdateStreamFiles())
+            {
+                this.Log().Error("Couldn't update streamed files.");
 
                 State = ResourceState.Error;
                 return false;
@@ -221,6 +232,134 @@ namespace CitizenMP.Server.Resources
             Dependants.Add(name);
         }
 
+        private bool UpdateStreamFiles()
+        {
+            var streamFolder = System.IO.Path.Combine(Path, "stream"); 
+
+            if (!Directory.Exists(streamFolder))
+            {
+                return true;
+            }
+
+            var streamFiles = Directory.GetFiles(streamFolder, "*.*", SearchOption.AllDirectories);
+            var streamCacheFile = string.Format("cache/http-files/{0}.sfl", Name);
+            var needsUpdate = false;
+
+            if (!File.Exists(streamCacheFile))
+            {
+                needsUpdate = true;
+            }
+
+            if (!needsUpdate)
+            {
+                var modDate = streamFiles.Select(a => File.GetLastWriteTime(a)).OrderByDescending(a => a).First();
+                var cacheModDate = File.GetLastWriteTime(streamCacheFile);
+
+                if (modDate > cacheModDate)
+                {
+                    needsUpdate = true;
+                }
+            }
+
+            if (needsUpdate)
+            {
+                return CreateStreamCacheList(streamFiles, streamCacheFile);
+            }
+            else
+            {
+                return LoadStreamCacheList(streamFiles, streamCacheFile);
+            }
+        }
+
+        public class StreamCacheEntry
+        {
+            public string BaseName { get; set; }
+            public string HashString { get; set; }
+            public string FileName { get; set; }
+            public uint RscFlags { get; set; }
+            public uint RscVersion { get; set; }
+            public uint Size { get; set; }
+        }
+
+        public IDictionary<string, StreamCacheEntry> StreamEntries { get; set; }
+
+        private bool CreateStreamCacheList(string[] files, string cacheFilename)
+        {
+            JArray cacheOutList = new JArray();
+
+            foreach (var file in files)
+            {
+                var hash = Utils.GetFileSHA1String(file);
+                var basename = System.IO.Path.GetFileName(file);
+
+                var stream = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+                var reader = new BinaryReader(stream);
+
+                var size = stream.Length;
+                var resourceFlags = size;
+                var resourceVersion = 0;
+
+                if (reader.ReadUInt32() == 0x05435352) // RSC\x5
+                {
+                    resourceVersion = reader.ReadInt32();
+                    resourceFlags = reader.ReadUInt32();
+                }
+
+                var obj = new JObject();
+                obj["Hash"] = hash;
+                obj["BaseName"] = basename;
+                obj["Size"] = size;
+                obj["RscFlags"] = resourceFlags;
+                obj["RscVersion"] = resourceVersion;
+
+                cacheOutList.Add(obj);
+            }
+
+            File.WriteAllText(cacheFilename, cacheOutList.ToString());
+
+            LoadStreamCacheList(files, cacheFilename);
+
+            return true;
+        }
+
+        private bool LoadStreamCacheList(string[] files, string cacheFile)
+        {
+            var cacheList = JArray.Parse(File.ReadAllText(cacheFile));
+            var cacheEntries = new Dictionary<string, StreamCacheEntry>();
+
+            foreach (var entry in cacheList)
+            {
+                var obj = entry as JObject;
+
+                if (obj == null)
+                {
+                    continue;
+                }
+
+                var newEntry = new StreamCacheEntry();
+                newEntry.BaseName = obj.Value<string>("BaseName");
+                newEntry.HashString = obj.Value<string>("Hash");
+                newEntry.RscFlags = obj.Value<uint>("RscFlags");
+                newEntry.RscVersion = obj.Value<uint>("RscVersion");
+                newEntry.Size = obj.Value<uint>("Size");
+
+                cacheEntries.Add(obj.Value<string>("BaseName"), newEntry);
+            }
+
+            foreach (var file in files)
+            {
+                var basename = System.IO.Path.GetFileName(file);
+
+                if (!cacheEntries.ContainsKey(basename)) { continue; }
+
+                cacheEntries[basename].FileName = file;
+            }
+
+            StreamEntries = cacheEntries;
+
+            return true;
+        }
+
         private bool UpdateClientPackage()
         {
             lock (m_watcher)
@@ -271,6 +410,18 @@ namespace CitizenMP.Server.Resources
         public Stream OpenClientPackage()
         {
             return File.Open("cache/http-files/" + Name + ".rpf", FileMode.Open, FileAccess.Read, FileShare.Read);
+        }
+
+        public Stream GetStreamFile(string baseName)
+        {
+            StreamCacheEntry entry;
+
+            if (!StreamEntries.TryGetValue(baseName, out entry))
+            {
+                return null;
+            }
+
+            return File.Open(entry.FileName, FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
         public void TriggerEvent(string eventName, string argsSerialized, int source)
