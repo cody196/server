@@ -45,9 +45,23 @@ namespace CitizenMP.Server.HTTP
                     var files = new JObject();
                     files["resource.rpf"] = resource.ClientPackageHash;
 
+                    var streamFiles = new JObject();
+
+                    foreach (var entry in resource.StreamEntries)
+                    {
+                        var obj = new JObject();
+                        obj["hash"] = entry.Value.HashString;
+                        obj["rscFlags"] = entry.Value.RscFlags;
+                        obj["rscVersion"] = entry.Value.RscVersion;
+                        obj["size"] = entry.Value.Size;
+
+                        streamFiles[entry.Value.BaseName] = obj;
+                    }
+
                     var rObject = new JObject();
                     rObject["name"] = resource.Name;
                     rObject["files"] = files;
+                    rObject["streamFiles"] = streamFiles;
 
                     resources.Add(rObject);
                 }

@@ -93,6 +93,15 @@ namespace CitizenMP.Server.HTTP
                         {
                             context.Response = new HttpResponse(HttpResponseCode.Ok, "application/x-rockstar-rpf", resource.OpenClientPackage(), true);
                         }
+                        else
+                        {
+                            var stream = resource.GetStreamFile(urlParts[2]);
+
+                            if (stream != null)
+                            {
+                                context.Response = new HttpResponse(HttpResponseCode.Ok, "application/octet-stream", stream, true);
+                            }
+                        }
                     }
                 }
 
