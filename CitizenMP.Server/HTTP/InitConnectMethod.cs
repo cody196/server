@@ -42,7 +42,7 @@ namespace CitizenMP.Server.HTTP
 
                     var ipUInt = (uint)IPAddress.HostToNetworkOrder(BitConverter.ToInt32(((IPEndPoint)context.RemoteEndPoint).Address.GetAddressBytes(), 0));
 
-                    var authResult = await gameServer.PlatformClient.ValidateTicket(ipUInt, ulong.Parse(guid), Convert.FromBase64String(authTicket));
+                    var authResult = await gameServer.PlatformClient.ValidateTicket(new IPAddress(BitConverter.GetBytes(ipUInt)), ulong.Parse(guid), new NPSharp.RPC.Messages.Data.Ticket(Convert.FromBase64String(authTicket)));
 
                     if (!authResult)
                     {
