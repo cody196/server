@@ -124,8 +124,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent Condition=" '$(OS)' != 'Unix' ">xcopy /s /y "Q:\Dev\citizenmp-sharp\CitizenMP.Server\packages\NLua.CitizenMP.2.2.2.14\lib\native\x86\*.*" "$(TargetDir)"
-xcopy /s /y "Q:\Dev\citizenmp-sharp\CitizenMP.Server\packages\NLua.CitizenMP.2.2.2.17\lib\native\x86\*.*" "$(TargetDir)"</PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' != 'Unix' ">xcopy /s /y "$(SolutionDir)\packages\NLua.CitizenMP.2.2.2.14\lib\native\x86\*.*" "$(TargetDir)"
+xcopy /s /y "$(SolutionDir)\packages\NLua.CitizenMP.2.2.2.17\lib\native\x86\*.*" "$(TargetDir)"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
