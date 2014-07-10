@@ -40,9 +40,7 @@ namespace CitizenMP.Server.HTTP
                         return result;
                     }
 
-                    var ipUInt = (uint)IPAddress.HostToNetworkOrder(BitConverter.ToInt32(((IPEndPoint)context.RemoteEndPoint).Address.GetAddressBytes(), 0));
-
-                    var authResult = await gameServer.PlatformClient.ValidateTicket(new IPAddress(BitConverter.GetBytes(IPAddress.HostToNetworkOrder((int)ipUInt))), ulong.Parse(guid), new NPSharp.RPC.Messages.Data.Ticket(Convert.FromBase64String(authTicket)));
+                    var authResult = await gameServer.PlatformClient.ValidateTicket(((IPEndPoint)context.RemoteEndPoint).Address, ulong.Parse(guid), new NPSharp.RPC.Messages.Data.Ticket(Convert.FromBase64String(authTicket)));
 
                     if (!authResult)
                     {
