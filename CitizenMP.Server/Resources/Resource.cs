@@ -204,6 +204,16 @@ namespace CitizenMP.Server.Resources
             return true;
         }
 
+        public string CallRef(int luaRef, string argsSerialized)
+        {
+            return m_scriptEnvironment.CallExport(luaRef, argsSerialized);
+        }
+
+        public void RemoveRef(int luaRef)
+        {
+            m_scriptEnvironment.RemoveRef(luaRef);
+        }
+
         private static bool ms_clientUpdateQueued;
 
         private void InvokeUpdateClientPackage()

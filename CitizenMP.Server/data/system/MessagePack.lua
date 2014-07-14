@@ -1122,3 +1122,29 @@ msgpack = m
 -- This library is licensed under the terms of the MIT/X11 license,
 -- like Lua itself.
 --
+
+--
+-- CitizenMP extensions follow
+--
+
+local EXT_CLOSURE = 1
+
+m.packers['function'] = function(buffer, func)
+    local ref, res = GetFuncRef(func)
+
+    m.packers['ext'](buffer, EXT_CLOSURE, char(
+        floor(ref / 0x1000000),
+        floor(ref / 0x10000) % 0x100,
+        floor(ref / 0x100) % 0x100,
+        ref % 0x100) .. res)
+end
+
+m.build_ext = function(tag, data)
+    if tag == EXT_CLOSURE then
+        local cursor = cursor_string(data)
+        local ref = unpackers['int32'](cursor)
+        local res = data:sub(5)
+
+        return GetFuncFromRef(ref, res)
+    end
+end

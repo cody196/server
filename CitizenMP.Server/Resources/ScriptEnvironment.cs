@@ -197,6 +197,9 @@ namespace CitizenMP.Server.Resources
                 LuaL.LuaPushNumber(L, source);
                 LuaL.LuaNetSetGlobal(L, "source");
 
+                var lastEnvironment = ms_currentEnvironment;
+                ms_currentEnvironment = this;
+
                 var unpacker = (Func<string, LuaTable>)m_luaState.GetFunction(typeof(Func<string, LuaTable>), "msgpack.unpack");
                 var table = unpacker(argsSerialized);
 
@@ -208,8 +211,6 @@ namespace CitizenMP.Server.Resources
                     args[i] = value;
                     i++;
                 }
-
-                ms_currentEnvironment = this;
 
                 foreach (var handler in eventHandlers)
                 {
@@ -230,10 +231,54 @@ namespace CitizenMP.Server.Resources
 
                 table.Dispose();
 
-                ms_currentEnvironment = null;
+                ms_currentEnvironment = lastEnvironment;
             }
         }
 
+        public string CallExport(int luaRef, string argsSerialized)
+        {
+            lock (m_luaState)
+            {
+                var func = new LuaFunction(luaRef, m_luaState);
+
+                var lastEnvironment = ms_currentEnvironment;
+                ms_currentEnvironment = this;
+
+                // unpack
+                var unpacker = (Func<string, LuaTable>)m_luaState.GetFunction(typeof(Func<string, LuaTable>), "msgpack.unpack");
+                var table = unpacker(argsSerialized);
+
+                // make array
+                var args = new object[table.Values.Count];
+                var i = 0;
+
+                foreach (var value in table.Values)
+                {
+                    args[i] = value;
+                    i++;
+                }
+
+                // invoke
+                var objects = func.Call(args);
+                table.Dispose();
+
+                // pack return values
+                var retstr = EventScriptFunctions.SerializeArguments(objects);
+
+                ms_currentEnvironment = lastEnvironment;
+
+                return retstr;
+            }
+        }
+
+        public void RemoveRef(int reference)
+        {
+            lock (m_luaState)
+            {
+                LuaL.LuaLUnref(m_luaNative, -1001000, reference);
+            }
+        }
+        
         [LuaFunction("AddEventHandler")]
         static void AddEventHandler_f(string eventName, LuaFunction eventHandler)
         {
