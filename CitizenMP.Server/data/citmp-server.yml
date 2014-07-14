@@ -1,9 +1,13 @@
 ListenPort: 30120
 
+PreParseResources:
+    - mapmanager
+
 AutoStartResources:
     - gameInit # this resource (or equivalent) is pretty much required for the game to start; it'll crash on loading otherwise
     - sessionmanager
     - spawnmanager
+    - mapmanager
     - chat
     - rconlog
     - betaguns

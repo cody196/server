@@ -21,6 +21,10 @@ RegisterInitHandler(function(initScript, isPreParse)
 
 	}
 
+    TriggerEvent('getResourceInitFuncs', isPreParse, function(key, cb)
+        env[key] = cb
+    end)
+
 	if not isPreParse then
 		env.server_scripts = function(n)
             if type(n) == 'string' then
@@ -87,7 +91,11 @@ RegisterInitHandler(function(initScript, isPreParse)
 			if _G[k] then return _G[k] end
 
 			-- as we're not going to return nothing here (to allow unknown directives to be ignored)
-			return function() end
+			local f = function()
+                return f
+            end
+
+            return function() return f end
 		end
 	}
 

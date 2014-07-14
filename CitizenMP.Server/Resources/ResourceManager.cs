@@ -46,15 +46,22 @@ namespace CitizenMP.Server.Resources
 
         public Resource AddResource(string name, string path)
         {
+            if (m_resources.ContainsKey(name))
+            {
+                return null;
+            }
+
             var res = new Resource(name, path);
             res.Manager = this;
 
+            AddResource(res);
+
             if (res.Parse())
             {
-                AddResource(res);
-
                 return res;
             }
+
+            m_resources.Remove(res.Name);
 
             return null;
         }
@@ -71,7 +78,7 @@ namespace CitizenMP.Server.Resources
             m_resources[res.Name] = res;
         }
 
-        public void ScanResources(string path)
+        public void ScanResources(string path, string onlyThisResource = null)
         {
             var subdirs = Directory.GetDirectories(path);
 
@@ -87,11 +94,14 @@ namespace CitizenMP.Server.Resources
                         continue;
                     }
 
-                    ScanResources(dir);
+                    ScanResources(dir, onlyThisResource);
                 }
                 else
                 {
-                    AddResource(basename, dir);
+                    if (onlyThisResource == null || onlyThisResource == basename)
+                    {
+                        AddResource(basename, dir);
+                    }
                 }
             }
         }

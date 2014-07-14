@@ -48,6 +48,8 @@ namespace CitizenMP.Server.Resources
                 return false;
             }
 
+            State = ResourceState.Parsing;
+
             Info = new Dictionary<string, string>();
             Dependencies = new List<string>();
             Exports = new List<string>();
@@ -55,7 +57,11 @@ namespace CitizenMP.Server.Resources
             AuxFiles = new List<string>();
             ServerScripts = new List<string>();
 
-            return ParseInfoFile();
+            var result = ParseInfoFile();
+
+            State = ResourceState.Stopped;
+
+            return result;
         }
 
         private bool EnsureScriptEnvironment()
@@ -88,51 +94,72 @@ namespace CitizenMP.Server.Resources
                 return true;
             }
 
-            if (State != ResourceState.Stopped)
+            if (State != ResourceState.Stopped && State != ResourceState.Starting)
             {
                 throw new InvalidOperationException("can not start a resource that is not stopped");
             }
 
-            // resolve dependencies
-            foreach (var dep in Dependencies)
+            // as this is already done for us in this case
+            if (State != ResourceState.Starting)
             {
-                var res = Manager.GetResource(dep);
-
-                if (res == null)
+                // resolve dependencies
+                foreach (var dep in Dependencies)
                 {
-                    this.Log().Warn("Can't resolve dependency {0} from resource {1}.", dep, Name);
+                    var res = Manager.GetResource(dep);
+
+                    if (res == null)
+                    {
+                        this.Log().Warn("Can't resolve dependency {0} from resource {1}.", dep, Name);
+                        return false;
+                    }
+
+                    res.Start();
+                    res.AddDependant(Name);
+                }
+
+                m_watcher = new FileSystemWatcher();
+
+                if (!UpdateClientPackage())
+                {
+                    this.Log().Error("Couldn't update the client package.");
+
+                    State = ResourceState.Error;
                     return false;
                 }
 
-                res.Start();
-                res.AddDependant(Name);
+                if (!UpdateStreamFiles())
+                {
+                    this.Log().Error("Couldn't update streamed files.");
+
+                    State = ResourceState.Error;
+                    return false;
+                }
+
+                // create script environment
+                if (!EnsureScriptEnvironment())
+                {
+                    return false;
+                }
             }
 
-            m_watcher = new FileSystemWatcher();
-
-            if (!UpdateClientPackage())
-            {
-                this.Log().Error("Couldn't update the client package.");
-
-                State = ResourceState.Error;
-                return false;
-            }
-
-            if (!UpdateStreamFiles())
-            {
-                this.Log().Error("Couldn't update streamed files.");
-
-                State = ResourceState.Error;
-                return false;
-            }
-
-            // create script environment
-            if (!EnsureScriptEnvironment())
-            {
-                return false;
-            }
+            State = ResourceState.Starting;
 
             m_scriptEnvironment.DoInitFile(false);
+
+            // trigger event
+            if (!Manager.TriggerEvent("onResourceStarting", -1, Name))
+            {
+                // how the h-
+                if (State == ResourceState.Running)
+                {
+                    return true;
+                }
+
+                Stop();
+
+                return false;
+            }
+
             m_scriptEnvironment.LoadScripts();
 
             // TODO: add development mode check
@@ -169,14 +196,17 @@ namespace CitizenMP.Server.Resources
 
         public bool Stop()
         {
-            if (State != ResourceState.Running)
+            if (State != ResourceState.Running && State != ResourceState.Starting)
             {
-                throw new InvalidOperationException("Tried to stop a resource that wasn't running.");
+                throw new InvalidOperationException(string.Format("Tried to stop a resource ({0}) that wasn't running.", Name));
             }
 
-            if (!Manager.TriggerEvent("onResourceStop", -1, Name))
+            if (State == ResourceState.Running)
             {
-                return false;
+                if (!Manager.TriggerEvent("onResourceStop", -1, Name))
+                {
+                    return false;
+                }
             }
 
             foreach (var dependant in Dependants)
@@ -190,12 +220,15 @@ namespace CitizenMP.Server.Resources
             m_scriptEnvironment.Dispose();
             m_scriptEnvironment = null;
 
-            // broadcast a stop message to all clients
-            var clients = ClientInstances.Clients.Where(c => c.Value.NetChannel != null).Select(c => c.Value);
-
-            foreach (var client in clients)
+            if (State == ResourceState.Running)
             {
-                client.SendReliableCommand(0x45E855D7, Encoding.UTF8.GetBytes(Name)); // msgResStop
+                // broadcast a stop message to all clients
+                var clients = ClientInstances.Clients.Where(c => c.Value.NetChannel != null).Select(c => c.Value);
+
+                foreach (var client in clients)
+                {
+                    client.SendReliableCommand(0x45E855D7, Encoding.UTF8.GetBytes(Name)); // msgResStop
+                }
             }
 
             // done!
@@ -462,7 +495,9 @@ namespace CitizenMP.Server.Resources
     {
         Stopped,
         Stopping,
+        Starting,
         Running,
+        Parsing,
         Error
     }
 }

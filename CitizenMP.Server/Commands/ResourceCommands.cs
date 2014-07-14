@@ -30,7 +30,9 @@ namespace CitizenMP.Server.Commands
 
             try
             {
-                if (!resource.Stop())
+                resource.Stop();
+
+                if (resource.State != Resources.ResourceState.Stopped)
                 {
                     Game.RconPrint.Print("err stop {0}\n", resourceName);
                     return;
@@ -67,7 +69,9 @@ namespace CitizenMP.Server.Commands
 
             try
             {
-                if (!resource.Start())
+                resource.Start();
+
+                if (resource.State != Resources.ResourceState.Running)
                 {
                     Game.RconPrint.Print("err start {0}\n", resourceName);
                     return;
@@ -104,7 +108,18 @@ namespace CitizenMP.Server.Commands
 
             try
             {
-                if (!resource.Stop() || !resource.Start())
+                resource.Stop();
+
+                if (resource.State != Resources.ResourceState.Stopped)
+                {
+                    Game.RconPrint.Print("err restart {0}\n", resourceName);
+
+                    return;
+                }
+
+                resource.Start();
+
+                if (resource.State != Resources.ResourceState.Running)
                 {
                     Game.RconPrint.Print("err restart {0}\n", resourceName);
 

@@ -25,11 +25,11 @@ namespace CitizenMP.Server.Resources
         }
 
         [LuaFunction("TriggerEvent")]
-        static void TriggerEvent_f(string eventName, params object[] args)
+        static bool TriggerEvent_f(string eventName, params object[] args)
         {
             var serializedArgs = SerializeArguments(args);
 
-            ScriptEnvironment.CurrentEnvironment.Resource.Manager.TriggerEvent(eventName, serializedArgs, -1);
+            return ScriptEnvironment.CurrentEnvironment.Resource.Manager.TriggerEvent(eventName, serializedArgs, -1);
         }
 
         [LuaFunction("TriggerClientEvent")]
@@ -68,7 +68,7 @@ namespace CitizenMP.Server.Resources
                 throw new ArgumentException("Invalid resource name.");
             }
 
-            if (resource.State != ResourceState.Running)
+            if (resource.State != ResourceState.Running && resource.State != ResourceState.Starting && resource.State != ResourceState.Parsing)
             {
                 throw new ArgumentException("Resource wasn't running.");
             }

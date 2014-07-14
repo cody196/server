@@ -31,6 +31,12 @@ namespace CitizenMP.Server.Resources
             }
         }
 
+        public static ScriptEnvironment LastEnvironment
+        {
+            get;
+            private set;
+        }
+
         public Resource Resource
         {
             get
@@ -82,6 +88,8 @@ namespace CitizenMP.Server.Resources
 
         public bool Create()
         {
+            ScriptEnvironment lastEnvironment = null, oldLastEnvironment = null;
+
             try
             {
                 m_luaNative = LuaL.LuaLNewState();
@@ -92,7 +100,11 @@ namespace CitizenMP.Server.Resources
 
                 m_luaState = new NLua.Lua(m_luaNative);
 
+                lastEnvironment = ms_currentEnvironment;
                 ms_currentEnvironment = this;
+
+                oldLastEnvironment = LastEnvironment;
+                LastEnvironment = lastEnvironment;
 
                 // register our global functions
                 foreach (var func in ms_luaFunctions)
@@ -113,7 +125,8 @@ namespace CitizenMP.Server.Resources
             }
             finally
             {
-                ms_currentEnvironment = null;
+                ms_currentEnvironment = lastEnvironment;
+                LastEnvironment = oldLastEnvironment;
             }
 
             return false;
@@ -134,9 +147,15 @@ namespace CitizenMP.Server.Resources
 
         public bool LoadScripts()
         {
+            ScriptEnvironment lastEnvironment = null, oldLastEnvironment = null;
+
             try
             {
+                lastEnvironment = ms_currentEnvironment;
                 ms_currentEnvironment = this;
+
+                oldLastEnvironment = LastEnvironment;
+                LastEnvironment = lastEnvironment;
 
                 // load scripts defined in this resource
                 foreach (var script in m_resource.ServerScripts)
@@ -152,7 +171,8 @@ namespace CitizenMP.Server.Resources
             }
             finally
             {
-                ms_currentEnvironment = null;
+                ms_currentEnvironment = lastEnvironment;
+                LastEnvironment = oldLastEnvironment;
             }
 
             return false;
@@ -160,9 +180,15 @@ namespace CitizenMP.Server.Resources
 
         public bool DoInitFile(bool preParse)
         {
+            ScriptEnvironment lastEnvironment = null, oldLastEnvironment = null;
+
             try
             {
+                lastEnvironment = ms_currentEnvironment;
                 ms_currentEnvironment = this;
+
+                oldLastEnvironment = LastEnvironment;
+                LastEnvironment = lastEnvironment;
 
                 var initFunction = m_luaState.LoadFile(Path.Combine(m_resource.Path, "__resource.lua"));
 
@@ -176,7 +202,8 @@ namespace CitizenMP.Server.Resources
             }
             finally
             {
-                ms_currentEnvironment = null;
+                ms_currentEnvironment = lastEnvironment;
+                LastEnvironment = oldLastEnvironment;
             }
 
             return false;
@@ -199,6 +226,9 @@ namespace CitizenMP.Server.Resources
 
                 var lastEnvironment = ms_currentEnvironment;
                 ms_currentEnvironment = this;
+
+                var oldLastEnvironment = LastEnvironment;
+                LastEnvironment = lastEnvironment;
 
                 var unpacker = (Func<string, LuaTable>)m_luaState.GetFunction(typeof(Func<string, LuaTable>), "msgpack.unpack");
                 var table = unpacker(argsSerialized);
@@ -232,6 +262,7 @@ namespace CitizenMP.Server.Resources
                 table.Dispose();
 
                 ms_currentEnvironment = lastEnvironment;
+                LastEnvironment = oldLastEnvironment;
             }
         }
 
@@ -243,6 +274,9 @@ namespace CitizenMP.Server.Resources
 
                 var lastEnvironment = ms_currentEnvironment;
                 ms_currentEnvironment = this;
+
+                var oldLastEnvironment = LastEnvironment;
+                LastEnvironment = lastEnvironment;
 
                 // unpack
                 var unpacker = (Func<string, LuaTable>)m_luaState.GetFunction(typeof(Func<string, LuaTable>), "msgpack.unpack");
@@ -266,6 +300,7 @@ namespace CitizenMP.Server.Resources
                 var retstr = EventScriptFunctions.SerializeArguments(objects);
 
                 ms_currentEnvironment = lastEnvironment;
+                LastEnvironment = oldLastEnvironment;
 
                 return retstr;
             }

@@ -68,6 +68,22 @@ namespace CitizenMP.Server
             // create the game server (as resource scanning needs it now)
             var gameServer = new Game.GameServer(config, resManager, commandManager, client);
 
+            // preparse resources
+            if (config.PreParseResources != null)
+            {
+                foreach (var resource in config.PreParseResources)
+                {
+                    resManager.ScanResources("resources/", resource);
+
+                    var res = resManager.GetResource(resource);
+
+                    if (res != null)
+                    {
+                        res.Start();
+                    }
+                }
+            }
+
             // scan resources
             resManager.ScanResources("resources/");
 
