@@ -189,7 +189,10 @@ namespace CitizenMP.Server.Game
                     {
                         try
                         {
-                            m_resourceManager.TriggerEvent("rconCommand", -1, command[2], arguments);
+                            if (m_resourceManager.TriggerEvent("rconCommand", -1, command[2], arguments)) // not canceled, i.e. not handled
+                            {
+                                RconPrint.Print("Unknown command: {0}\n", command[2]);
+                            }
                         }
                         catch (Exception e)
                         {

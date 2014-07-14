@@ -121,7 +121,14 @@ $(function()
 
                 var buf = $('#chatBuffer');
 
-                buf.find('ul').append('<li><strong style="color: rgb(' + colorR + ', ' + colorG + ', ' + colorB + ')">' + name + ': </strong>' + message + '</li>');
+                var nameStr = '';
+
+                if (name != '')
+                {
+                    nameStr = '<strong style="color: rgb(' + colorR + ', ' + colorG + ', ' + colorB + ')">' + name + ': </strong>';
+                }
+
+                buf.find('ul').append('<li>' + nameStr + message + '</li>');
                 buf.scrollTop(buf[0].scrollHeight - buf.height());
 
                 $('#chat').show(0);

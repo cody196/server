@@ -50,15 +50,15 @@ AddEventHandler('chatMessage', function(netID, name, message)
 end)
 
 AddEventHandler('rconCommand', function(commandName, args)
-    if commandName ~= 'status' then
-        return
-    end
+    if commandName == 'status' then
+        for netid, data in pairs(names) do
+            local guid = GetPlayerGuid(netid)
 
-    for netid, data in pairs(names) do
-        local guid = GetPlayerGuid(netid)
-
-        if guid then
-            RconPrint(netid .. ' ' .. guid .. ' ' .. data.name .. ' ' .. GetPlayerEP(netid) .. "\n")
+            if guid then
+                RconPrint(netid .. ' ' .. guid .. ' ' .. data.name .. ' ' .. GetPlayerEP(netid) .. "\n")
+            end
         end
+
+        CancelEvent()
     end
 end)
