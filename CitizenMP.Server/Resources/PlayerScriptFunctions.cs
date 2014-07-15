@@ -8,6 +8,22 @@ namespace CitizenMP.Server.Resources
 {
     class PlayerScriptFunctions
     {
+        [LuaFunction("GetPlayers")]
+        static int[] GetPlayers()
+        {
+            var list = new List<int>();
+
+            foreach (var client in ClientInstances.Clients)
+            {
+                if (client.Value.NetChannel != null)
+                {
+                    list.Add(client.Value.NetID);
+                }
+            }
+
+            return list.ToArray();
+        }
+
         [LuaFunction("GetPlayerName")]
         static string GetPlayerName(int source)
         {

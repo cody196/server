@@ -31,10 +31,39 @@ namespace CitizenMP.Server.Resources
             }
         }
 
+        [ThreadStatic]
+        private static ScriptEnvironment ms_lastEnvironment;
+
+        [ThreadStatic]
+        private static int refCount;
+
         public static ScriptEnvironment LastEnvironment
         {
-            get;
-            private set;
+            get
+            {
+                return ms_lastEnvironment;
+            }
+            private set
+            {
+                if (ms_lastEnvironment == null && value != null)
+                {
+                    refCount++;
+                }
+                else if (ms_lastEnvironment != null && value == null)
+                {
+                    refCount--;
+                }
+
+                ms_lastEnvironment = value;
+            }
+        }
+
+        public static ScriptEnvironment InvokingEnvironment
+        {
+            get
+            {
+                return (LastEnvironment ?? CurrentEnvironment);
+            }
         }
 
         public Resource Resource
@@ -255,6 +284,10 @@ namespace CitizenMP.Server.Resources
                         Game.RconPrint.Print("Error in resource {0}: {1}\n", m_resource.Name, e.Message);
 
                         eventHandlers.Clear();
+
+                        ms_currentEnvironment = lastEnvironment;
+                        LastEnvironment = oldLastEnvironment;
+
                         return;
                     }
                 }
@@ -312,6 +345,55 @@ namespace CitizenMP.Server.Resources
             {
                 LuaL.LuaLUnref(m_luaNative, -1001000, reference);
             }
+        }
+
+        class ScriptTimer
+        {
+            public LuaFunction Function { get; set; }
+            public DateTime TickFrom { get; set; }
+        }
+
+        private List<ScriptTimer> m_timers = new List<ScriptTimer>();
+
+        public void Tick()
+        {
+            var timers = m_timers.GetRange(0, m_timers.Count);
+            var now = DateTime.UtcNow;
+
+            foreach (var timer in timers)
+            {
+                if (now >= timer.TickFrom)
+                {
+                    lock (m_luaState)
+                    {
+                        var lastEnvironment = ms_currentEnvironment;
+                        ms_currentEnvironment = this;
+
+                        var oldLastEnvironment = LastEnvironment;
+                        LastEnvironment = lastEnvironment;
+
+                        timer.Function.Call();
+
+                        ms_currentEnvironment = lastEnvironment;
+                        LastEnvironment = oldLastEnvironment;
+
+                        m_timers.Remove(timer);
+                    }
+                }
+            }
+        }
+
+        public void SetTimeout(int milliseconds, LuaFunction callback)
+        {
+            var newSpan = DateTime.UtcNow + TimeSpan.FromMilliseconds(milliseconds);
+
+            m_timers.Add(new ScriptTimer() { TickFrom = newSpan, Function = callback });
+        }
+
+        [LuaFunction("SetTimeout")]
+        static void SetTimeout_f(int milliseconds, LuaFunction callback)
+        {
+            ms_currentEnvironment.SetTimeout(milliseconds, callback);
         }
         
         [LuaFunction("AddEventHandler")]

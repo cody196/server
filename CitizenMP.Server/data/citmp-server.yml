@@ -12,6 +12,7 @@ AutoStartResources:
     - rconlog
     - betaguns
     - keks
+    - play-midpa
 
 RconPassword: lovely
 

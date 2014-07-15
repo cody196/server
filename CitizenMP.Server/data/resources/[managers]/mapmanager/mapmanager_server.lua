@@ -15,6 +15,20 @@ AddEventHandler('getResourceInitFuncs', function(isPreParse, add)
             end
         end
     end)
+
+    add('map', function(file)
+        AddAuxFile(file)
+    end)
+end)
+
+AddEventHandler('playerActivated', function()
+    if getCurrentGameType() then
+        TriggerClientEvent('onClientGameTypeStart', source, getCurrentGameType())
+    end
+
+    if getCurrentMap() then
+        TriggerClientEvent('onClientMapStart', source, getCurrentMap())
+    end
 end)
 
 AddEventHandler('onResourceStarting', function(resource)
@@ -39,11 +53,20 @@ AddEventHandler('onResourceStarting', function(resource)
     end
 end)
 
+math.randomseed(os.time())
+
 local currentGameType = nil
 local currentMap = nil
 
 AddEventHandler('onResourceStart', function(resource)
     if maps[resource] then
+        if not getCurrentGameType() then
+            for gt, _ in pairs(maps[resource].gameTypes) do
+                changeGameType(gt)
+                break
+            end
+        end
+
         if getCurrentGameType() and not getCurrentMap() then
             if doesMapSupportGameType(currentGameType, resource) then
                 if TriggerEvent('onMapStart', resource, maps[resource]) then
@@ -61,8 +84,24 @@ AddEventHandler('onResourceStart', function(resource)
                 local gtName = gametypes[resource].name or resource
 
                 print('Started gametype ' .. gtName)
+                TriggerClientEvent('onClientGameTypeStart', -1, getCurrentGameType())
 
-                -- TODO: timer to wait if a map is started in the next few frames
+                SetTimeout(50, function()
+                    if not currentMap then
+                        local possibleMaps = {}
+
+                        for map, data in pairs(maps) do
+                            if data.gameTypes[currentGameType] then
+                                table.insert(possibleMaps, map)
+                            end
+                        end
+
+                        if #possibleMaps > 0 then
+                            local rnd = math.random(#possibleMaps)
+                            changeMap(possibleMaps[rnd])
+                        end
+                    end
+                end)
             else
                 currentGameType = nil
             end
@@ -140,6 +179,10 @@ function getCurrentMap()
 end
 
 function changeGameType(gameType)
+    if currentMap and not doesMapSupportGameType(gameType, map) then
+        StopResource(currentMap)
+    end
+
     if currentGameType then
         StopResource(currentGameType)
     end
@@ -156,7 +199,7 @@ function changeMap(map)
 end
 
 function doesMapSupportGameType(gameType, map)
-    if not gameTypes[gameType] then
+    if not gametypes[gameType] then
         return false
     end
 

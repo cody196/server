@@ -2,7 +2,60 @@
 local spawnPoints = {}
 
 -- auto-spawn enabled flag
-local autoSpawnEnabled = true
+local autoSpawnEnabled = false
+
+-- support for mapmanager maps
+AddEventHandler('getMapDirectives', function(add)
+    -- call the remote callback
+    add('spawnpoint', function(state, model)
+        -- return another callback to pass coordinates and so on (as such syntax would be [spawnpoint 'model' { options/coords }])
+        return function(opts)
+            local x, y, z, heading
+
+            -- is this a map or an array?
+            if opts.x then
+                x = opts.x
+                y = opts.y
+                z = opts.z
+            else
+                x = opts[1]
+                y = opts[2]
+                z = opts[3]
+            end
+
+            -- get a heading and force it to a float, or just default to null
+            heading = opts.heading and (opts.heading + 0.01) or 0
+
+            -- add the spawnpoint
+            addSpawnPoint({
+                x = x, y = y, z = z,
+                heading = heading,
+                model = model
+            })
+
+            -- recalculate the model for storage
+            if not tonumber(model) then
+                model = GetHashKey(model, _r)
+            end
+
+            -- store the spawn data in the state so we can erase it later on
+            state.add('xyz', { x, y, z })
+            state.add('model', model)
+        end
+        -- delete callback follows on the next line
+    end, function(state, arg)
+        -- loop through all spawn points to find one with our state
+        for i, sp in ipairs(spawnPoints) do
+            -- if it matches...
+            if sp.x == state.xyz[1] and sp.y == state.xyz[2] and sp.z == state.xyz[3] and sp.model == state.model then
+                -- remove it.
+                table.remove(spawnPoints, i)
+                return
+            end
+        end
+    end)
+end)
+
 
 -- loads a set of spawn points from a JSON string
 function loadSpawns(spawnString)
@@ -192,7 +245,11 @@ CreateThread(function()
     end
 end)
 
-AddEventHandler('playerInfoCreated', function()
+function forceRespawn()
+    respawnForced = true
+end
+
+--[[AddEventHandler('playerInfoCreated', function()
     loadSpawns(json.encode({
         spawns = {
             { x = -238.511, y = 954.025, z = 11.0803, heading = 90.0, model = 'ig_brucie' },
@@ -203,4 +260,4 @@ end)
 
 AddEventHandler('playerActivated', function()
     respawnForced = true
-end)
+end)]]

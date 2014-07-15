@@ -15,13 +15,13 @@ namespace CitizenMP.Server.Resources
         [LuaFunction("SetResourceInfo")]
         public static void SetResourceInfo_f(string key, string value)
         {
-            ScriptEnvironment.CurrentEnvironment.Resource.Info[key] = value;
+            ScriptEnvironment.InvokingEnvironment.Resource.Info[key] = value;
         }
 
         [LuaFunction("AddClientScript")]
         public static void AddClientScript_f(string script)
         {
-            ScriptEnvironment.CurrentEnvironment.Resource.Scripts.Add(script);
+            ScriptEnvironment.InvokingEnvironment.Resource.Scripts.Add(script);
         }
 
         [LuaFunction("AddServerScript")]
@@ -34,13 +34,13 @@ namespace CitizenMP.Server.Resources
         [LuaFunction("AddAuxFile")]
         public static void AddAuxFile_f(string file)
         {
-            ScriptEnvironment.CurrentEnvironment.Resource.AuxFiles.Add(file);
+            ScriptEnvironment.InvokingEnvironment.Resource.AuxFiles.Add(file);
         }
 
         [LuaFunction("AddResourceDependency")]
         public static void AddResourceDependency_f(string resource)
         {
-            ScriptEnvironment.CurrentEnvironment.Resource.Dependencies.Add(resource);
+            ScriptEnvironment.InvokingEnvironment.Resource.Dependencies.Add(resource);
         }
 
         [LuaFunction("RegisterInitHandler")]

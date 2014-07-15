@@ -114,6 +114,14 @@ namespace CitizenMP.Server.Resources
             }
         }
 
+        public void Tick()
+        {
+            foreach (var resource in m_resources)
+            {
+                resource.Value.Tick();
+            }
+        }
+
         public bool TriggerEvent(string eventName, int source, params object[] args)
         {
             // convert the arguments to an object each

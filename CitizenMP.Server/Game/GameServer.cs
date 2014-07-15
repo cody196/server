@@ -843,6 +843,8 @@ namespace CitizenMP.Server.Game
                 SendHeartbeat();
             }
 
+            ResourceManager.Tick();
+
             // and then just send reliable buffers
             foreach (var client in ClientInstances.Clients)
             {

@@ -237,6 +237,14 @@ namespace CitizenMP.Server.Resources
             return true;
         }
 
+        public void Tick()
+        {
+            if (m_scriptEnvironment != null)
+            {
+                m_scriptEnvironment.Tick();
+            }
+        }
+
         public string CallRef(int luaRef, string argsSerialized)
         {
             return m_scriptEnvironment.CallExport(luaRef, argsSerialized);
