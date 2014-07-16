@@ -11,19 +11,41 @@ local hostReleaseCallbacks = {}
 AddEventHandler('hostingSession', function()
     -- if the lock is currently held, tell the client to await further instruction
     if currentHosting then
-        --TriggerClientEvent('sessionHostResult', source, 'wait')
+        TriggerClientEvent('sessionHostResult', source, 'wait')
 
         -- register a callback for when the lock is freed
         table.insert(hostReleaseCallbacks, function()
             TriggerClientEvent('sessionHostResult', source, 'free')
         end)
 
-        --return
+        return
     end
+
+    -- if the current host was last contacted less than a second ago
+    if GetPlayerLastMsg(GetHostId()) < 1000 then
+        TriggerClientEvent('sessionHostResult', source, 'conflict')
+
+        return
+    end
+
+    hostReleaseCallbacks = {}
 
     currentHosting = source
 
     TriggerClientEvent('sessionHostResult', source, 'go')
+
+    -- set a timeout of 5 seconds
+    SetTimeout(5000, function()
+        if not currentHosting then
+            return
+        end
+
+        currentHosting = nil
+
+        for _, cb in ipairs(hostReleaseCallbacks) do
+            cb()
+        end
+    end)
 end)
 
 AddEventHandler('hostedSession', function()

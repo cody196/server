@@ -9,7 +9,7 @@ namespace CitizenMP.Server.Resources
     class PlayerScriptFunctions
     {
         [LuaFunction("GetPlayers")]
-        static int[] GetPlayers()
+        static IEnumerable<int> GetPlayers()
         {
             var list = new List<int>();
 
@@ -21,7 +21,7 @@ namespace CitizenMP.Server.Resources
                 }
             }
 
-            return list.ToArray();
+            return list;
         }
 
         [LuaFunction("GetPlayerName")]
@@ -61,6 +61,19 @@ namespace CitizenMP.Server.Resources
             }
 
             return null;
+        }
+
+        [LuaFunction("GetPlayerLastMsg")]
+        static double GetPlayerLastMsg_f(int source)
+        {
+            var player = FindPlayer(source);
+
+            if (player != null)
+            {
+                return (DateTime.UtcNow - player.LastSeen).TotalMilliseconds;
+            }
+
+            return 0;
         }
 
         [LuaFunction("GetHostId")]
