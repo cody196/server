@@ -151,6 +151,11 @@ namespace CitizenMP.Server.Resources
             catch (Exception e)
             {
                 this.Log().Error(() => "Error creating script environment for resource " + m_resource.Name + ": " + e.Message, e);
+
+                if (e.InnerException != null)
+                {
+                    this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
+                }
             }
             finally
             {
@@ -197,6 +202,11 @@ namespace CitizenMP.Server.Resources
             catch (Exception e)
             {
                 this.Log().Error(() => "Error creating script environment for resource " + m_resource.Name + ": " + e.Message, e);
+
+                if (e.InnerException != null)
+                {
+                    this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
+                }
             }
             finally
             {
@@ -228,6 +238,11 @@ namespace CitizenMP.Server.Resources
             catch (Exception e)
             {
                 this.Log().Error(() => "Error creating script environment for resource " + m_resource.Name + ": " + e.Message, e);
+
+                if (e.InnerException != null)
+                {
+                    this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
+                }
             }
             finally
             {
@@ -280,6 +295,11 @@ namespace CitizenMP.Server.Resources
                     catch (NLua.Exceptions.LuaException e)
                     {
                         this.Log().Error(() => "Error executing event handler for event " + eventName + " in resource " + m_resource.Name + ": " + e.Message, e);
+
+                        if (e.InnerException != null)
+                        {
+                            this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
+                        }
 
                         Game.RconPrint.Print("Error in resource {0}: {1}\n", m_resource.Name, e.Message);
 
