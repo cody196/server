@@ -81,5 +81,17 @@ namespace CitizenMP.Server.Resources
                 return false;
             }
         }
+
+        [LuaFunction("SetGameType")]
+        static void SetGameType_f(string gameType)
+        {
+            ScriptEnvironment.CurrentEnvironment.Resource.Manager.GameServer.GameType = gameType;
+        }
+
+        [LuaFunction("SetMapName")]
+        static void SetMapName_f(string mapName)
+        {
+            ScriptEnvironment.CurrentEnvironment.Resource.Manager.GameServer.MapName = mapName;
+        }
     }
 }

@@ -62,6 +62,9 @@ namespace CitizenMP.Server.Game
 
         private IPEndPoint m_serverList;
 
+        public string GameType { get; set; }
+        public string MapName { get; set; }
+
         public GameServer(Configuration config, Resources.ResourceManager resManager, Commands.CommandManager commandManager, NPClient platformClient)
         {
             m_configuration = config;
@@ -131,6 +134,28 @@ namespace CitizenMP.Server.Game
             {
                 ProcessGetInfoCommand(remoteEP, commandText);
             }
+            else if (command == "getstatus")
+            {
+                ProcessGetStatusCommand(remoteEP, commandText);
+            }
+        }
+
+        void ProcessGetStatusCommand(IPEndPoint remoteEP, string commandText)
+        {
+            var command = Utils.Tokenize(commandText);
+
+            if (command.Length < 1)
+            {
+                return;
+            }
+
+            var response = "statusResponse\n";
+            response += GetServerInfoString((command.Length == 1) ? "" : command[1]) + "\n";
+
+            var clientLines = ClientInstances.Clients.Select(cl => cl.Value).Where(cl => cl.NetChannel != null).Select(cl => "0 0 \"" + cl.Name + "\"\n").Aggregate("", (a, b) => a + b);
+            response += clientLines;
+
+            SendOutOfBand(remoteEP, response);
         }
 
         void ProcessGetInfoCommand(IPEndPoint remoteEP, string commandText)
@@ -142,9 +167,14 @@ namespace CitizenMP.Server.Game
                 return;
             }
 
-            SendOutOfBand(remoteEP, "infoResponse\n\\sv_maxclients\\32\\clients\\{0}\\challenge\\{1}\\gamename\\GTA4\\protocol\\2\\hostname\\{2}", ClientInstances.Clients.Count(cl => cl.Value.RemoteEP != null), command[1], m_configuration.Hostname ?? "CitizenMP");
+            SendOutOfBand(remoteEP, "infoResponse\n{0}", GetServerInfoString(command[1]));
 
             m_nextHeartbeatTime = m_serverTime + (120 * 1000);
+        }
+
+        string GetServerInfoString(string challenge)
+        {
+            return string.Format("\\sv_maxclients\\32\\clients\\{0}\\challenge\\{1}\\gamename\\GTA4\\protocol\\2\\hostname\\{2}\\gametype\\{3}\\mapname\\{4}", ClientInstances.Clients.Count(cl => cl.Value.RemoteEP != null), challenge, m_configuration.Hostname ?? "CitizenMP", GameType ?? "", MapName ?? "");
         }
 
         private Dictionary<IPEndPoint, int> m_lastRconTimes = new Dictionary<IPEndPoint, int>();

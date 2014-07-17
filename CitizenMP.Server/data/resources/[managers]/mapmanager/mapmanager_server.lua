@@ -70,6 +70,12 @@ AddEventHandler('onResourceStart', function(resource)
         if getCurrentGameType() and not getCurrentMap() then
             if doesMapSupportGameType(currentGameType, resource) then
                 if TriggerEvent('onMapStart', resource, maps[resource]) then
+                    if maps[resource].name then
+                        SetMapName(maps[resource].name)
+                    else
+                        SetMapName(resource)
+                    end
+
                     currentMap = resource
                 else
                     currentMap = nil
@@ -82,6 +88,8 @@ AddEventHandler('onResourceStart', function(resource)
                 currentGameType = resource
 
                 local gtName = gametypes[resource].name or resource
+
+                SetGameType(gtName)
 
                 print('Started gametype ' .. gtName)
                 TriggerClientEvent('onClientGameTypeStart', -1, getCurrentGameType())
