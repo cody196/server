@@ -56,8 +56,8 @@ $(function()
 
         chatHideTimeout = setTimeout(function()
         {
-            //$('#chat').hide(400);
-        }, 5000);
+            $('#chat').fadeOut(200);
+        }, 10000);
     }
 
     $('#chatInput').fakeTextbox(); // //
