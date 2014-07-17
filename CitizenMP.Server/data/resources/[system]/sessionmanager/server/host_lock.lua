@@ -22,10 +22,12 @@ AddEventHandler('hostingSession', function()
     end
 
     -- if the current host was last contacted less than a second ago
-    if GetPlayerLastMsg(GetHostId()) < 1000 then
-        TriggerClientEvent('sessionHostResult', source, 'conflict')
+    if GetHostId() >= 1 then
+        if GetPlayerLastMsg(GetHostId()) < 1000 then
+            TriggerClientEvent('sessionHostResult', source, 'conflict')
 
-        return
+            return
+        end
     end
 
     hostReleaseCallbacks = {}
