@@ -73,7 +73,7 @@ namespace CitizenMP.Server.Resources
                 return (DateTime.UtcNow - player.LastSeen).TotalMilliseconds;
             }
 
-            return 0;
+            return 99999999;
         }
 
         [LuaFunction("GetHostId")]
