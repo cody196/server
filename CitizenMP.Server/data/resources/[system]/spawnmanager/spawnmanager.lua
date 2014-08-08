@@ -215,13 +215,15 @@ function spawnPlayer(spawnIdx)
 
     -- load the scene; streaming expects us to do it
     ForceLoadingScreen(true)
-    loadScene(spawn.x, spawn.y, spawn.z)
+    --loadScene(spawn.x, spawn.y, spawn.z)
     ForceLoadingScreen(false)
 
     DoScreenFadeIn(500)
 
     -- and unfreeze the player
     freezePlayer(GetPlayerId(), false)
+
+    TriggerEvent('playerSpawned')
 end
 
 -- automatic spawning monitor thread, too

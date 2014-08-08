@@ -38,7 +38,7 @@
   <ItemGroup>
     <Reference Include="KeraLua, Version=1.3.0.0, Culture=neutral, PublicKeyToken=04d04586786c6f34, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NLua.CitizenMP.2.2.2.18\lib\net40\x86\KeraLua.dll</HintPath>
+      <HintPath>..\packages\NLua.CitizenMP.2.2.2.19\lib\net40\x86\KeraLua.dll</HintPath>
     </Reference>
     <Reference Include="log4net, Version=1.2.13.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -56,7 +56,7 @@
     </Reference>
     <Reference Include="NLua, Version=1.3.0.0, Culture=neutral, PublicKeyToken=8df2ab518030ea95, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NLua.CitizenMP.2.2.2.18\lib\net40\x86\NLua.dll</HintPath>
+      <HintPath>..\packages\NLua.CitizenMP.2.2.2.19\lib\net40\x86\NLua.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -127,7 +127,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent Condition=" '$(OS)' != 'Unix' ">xcopy /s /y "$(SolutionDir)\packages\NLua.CitizenMP.2.2.2.18\lib\native\x86\*.*" "$(TargetDir)"</PostBuildEvent>
+    <PostBuildEvent Condition=" '$(OS)' != 'Unix' ">xcopy /s /y "$(SolutionDir)\packages\NLua.CitizenMP.2.2.2.19\lib\native\x86\*.*" "$(TargetDir)"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

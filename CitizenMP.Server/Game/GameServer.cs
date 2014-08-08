@@ -806,7 +806,14 @@ namespace CitizenMP.Server.Game
                     cb = m_mainCallbacks.Dequeue();
                 }
 
-                cb();
+                try
+                {
+                    cb();
+                }
+                catch (Exception e)
+                {
+                    this.Log().Error(() => "Exception during queued callback: " + e.Message, e);
+                }
             }
 
             // is it time for a server frame yet?

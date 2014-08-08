@@ -285,6 +285,14 @@ namespace CitizenMP.Server.Resources
 
         private bool UpdateStreamFiles()
         {
+            // check if a premade resource cache exists
+            var preCachePath = System.IO.Path.Combine(Path, "streamcache.sfl");
+
+            if (File.Exists(preCachePath))
+            {
+                return LoadStreamCacheList(null, preCachePath);
+            }
+
             var streamFolder = System.IO.Path.Combine(Path, "stream"); 
 
             if (!Directory.Exists(streamFolder))
@@ -366,7 +374,7 @@ namespace CitizenMP.Server.Resources
                 cacheOutList.Add(obj);
             }
 
-            File.WriteAllText(cacheFilename, cacheOutList.ToString());
+            File.WriteAllText(cacheFilename, cacheOutList.ToString(Newtonsoft.Json.Formatting.None));
 
             LoadStreamCacheList(files, cacheFilename);
 
@@ -397,13 +405,16 @@ namespace CitizenMP.Server.Resources
                 cacheEntries.Add(obj.Value<string>("BaseName"), newEntry);
             }
 
-            foreach (var file in files)
+            if (files != null)
             {
-                var basename = System.IO.Path.GetFileName(file);
+                foreach (var file in files)
+                {
+                    var basename = System.IO.Path.GetFileName(file);
 
-                if (!cacheEntries.ContainsKey(basename)) { continue; }
+                    if (!cacheEntries.ContainsKey(basename)) { continue; }
 
-                cacheEntries[basename].FileName = file;
+                    cacheEntries[basename].FileName = file;
+                }
             }
 
             StreamEntries = cacheEntries;
@@ -468,6 +479,11 @@ namespace CitizenMP.Server.Resources
             StreamCacheEntry entry;
 
             if (!StreamEntries.TryGetValue(baseName, out entry))
+            {
+                return null;
+            }
+
+            if (entry.FileName == null)
             {
                 return null;
             }

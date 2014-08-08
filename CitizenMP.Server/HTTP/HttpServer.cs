@@ -75,7 +75,7 @@ namespace CitizenMP.Server.HTTP
                     responseCode = HttpResponseCode.Ok;
                 }
 
-                context.Response = new HttpResponse(responseCode, "application/json", result.ToString(), true);
+                context.Response = new HttpResponse(responseCode, "application/json", result.ToString(Newtonsoft.Json.Formatting.None), true);
 
                 return;
             })).With("files", new AnonymousHttpRequestHandler((context, next) =>
@@ -100,6 +100,10 @@ namespace CitizenMP.Server.HTTP
                             if (stream != null)
                             {
                                 context.Response = new HttpResponse(HttpResponseCode.Ok, "application/octet-stream", stream, true);
+                            }
+                            else 
+                            {
+                                context.Response = new HttpResponse(HttpResponseCode.NotFound, "Not found.", true);
                             }
                         }
                     }

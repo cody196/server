@@ -1,0 +1,51 @@
+IMGLIST resources:/viiv-data/images.txt
+
+#  Water
+
+WATER common:/DATA/WATER.DAT common:/DATA/WATERLOW.DAT
+
+# Object types
+
+#ide common:/DATA/gtxd.ide
+
+#props files
+IDE platform:/DATA/maps/GENERIC/procobj.ide
+IDE platform:/DATA/maps/PROPS/LEV_DES/MINIGAME.ide
+IDE platform:/DATA/maps/PROPS/LEV_DES/ICONS.ide
+IDE platform:/DATA/maps/PROPS/commercial/clothes.ide
+IDE resources:/viiv-data/maps/v_palm.ide
+IDE resources:/viiv-data/maps/v_veg.ide
+IDE resources:/viiv-data/maps/v_traffic_lights.ide
+IDE resources:/viiv-data/maps/v_roadside.ide
+
+IDE resources:/viiv-data/maps/koreatown_01/ktown.ide
+IDE resources:/viiv-data/maps/veniceb_01/venice.ide
+IDE resources:/viiv-data/maps/santamon_01/santamon.ide
+IDE resources:/viiv-data/maps/beverly_01/beverly.ide
+IDE resources:/viiv-data/maps/sanpedro_01/sanpedro.ide
+IDE resources:/viiv-data/maps/airport_01/airport.ide
+IDE resources:/viiv-data/maps/downtown.ide
+IDE resources:/viiv-data/maps/hollywood.ide
+IDE resources:/viiv-data/maps/scentral.ide
+IDE resources:/viiv-data/maps/sunset.ide
+IDE resources:/viiv-data/maps/indust.ide
+IDE resources:/viiv-data/maps/port.ide
+
+# Scene information
+
+IPL common:/DATA/INFO.ZON
+IPL common:/DATA/MAP.ZON
+
+# map files
+IPL resources:/viiv-data/maps/koreatown_01/ktown.ipl
+IPL resources:/viiv-data/maps/veniceb_01/venice.ipl
+IPL resources:/viiv-data/maps/santamon_01/santamon.ipl
+IPL resources:/viiv-data/maps/beverly_01/beverly.ipl
+IPL resources:/viiv-data/maps/sanpedro_01/sanpedro.ipl
+IPL resources:/viiv-data/maps/airport_01/airport.ipl
+IPL resources:/viiv-data/maps/downtown.ipl
+IPL resources:/viiv-data/maps/hollywood.ipl
+IPL resources:/viiv-data/maps/scentral.ipl
+IPL resources:/viiv-data/maps/sunset.ipl
+IPL resources:/viiv-data/maps/indust.ipl
+IPL resources:/viiv-data/maps/port.ipl

@@ -28,7 +28,7 @@ namespace CitizenMP.Server
         {
             using (var baseStream = File.OpenRead(filename))
             {
-                using (var stream = new BufferedStream(baseStream))
+                using (var stream = new BufferedStream(baseStream, 32768))
                 {
                     using (var sha = SHA1.Create())
                     {

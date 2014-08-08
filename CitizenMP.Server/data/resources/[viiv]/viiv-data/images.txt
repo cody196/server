@@ -1,0 +1,16 @@
+# parts left from original IVLS due to lack of time; credits remain to them
+commonimg:/data/cdimages/navgen_script
+commonimg:/data/cdimages/script_network		1
+commonimg:/data/cdimages/carrec			1
+platformimg:/anim/anim				0
+platformimg:/models/cdimages/radar		0
+platformimg:/models/cdimages/pedprops		1
+platformimg:/models/cdimages/weapons		0
+platformimg:/models/cdimages/vehicles		0
+platformimg:/data/cdimages/scripttxds		1
+platformimg:/data/cdimages/gtxd			0
+platformimg:/models/cdimages/componentpeds	1
+platformimg:/data/maps/generic/procobj		1
+platformimg:/data/maps/props/lev_des/minigame	1
+platformimg:/data/maps/props/lev_des/icons	1
+platformimg:/data/maps/props/commercial/clothes	1

@@ -12,8 +12,14 @@ AutoStartResources:
     - rconlog
     - betaguns
     - keks
-    - play-midpa
+    - play-viiv
+    - viiv-core
+    - viiv-additional
+    - viiv-data
+    - viiv-tdd
 
 RconPassword: lovely
+
+Hostname: ^2greeen ViIV testing
 
 PlatformServer: iv-platform.prod.citizen.re

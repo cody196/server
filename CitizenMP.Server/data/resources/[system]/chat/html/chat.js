@@ -49,6 +49,8 @@ $(function()
 
     function startHideChat()
     {
+        return;
+
         if (chatHideTimeout)
         {
             clearTimeout(chatHideTimeout);
