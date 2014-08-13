@@ -201,6 +201,11 @@ namespace CitizenMP.Server.Resources
             return true;
         }
 
+        public void RemoveDependant(string name)
+        {
+            Dependants.Remove(name);
+        }
+
         public bool Stop()
         {
             if (State != ResourceState.Running && State != ResourceState.Starting)
@@ -224,6 +229,13 @@ namespace CitizenMP.Server.Resources
             }
 
             Dependants.Clear();
+
+            foreach (var dependency in Dependencies)
+            {
+                var dependencyResource = Manager.GetResource(dependency);
+
+                dependencyResource.RemoveDependant(Name);
+            }
 
             // dispose of the script environment
             m_scriptEnvironment.Dispose();
