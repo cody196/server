@@ -102,6 +102,13 @@ namespace CitizenMP.Server.Resources
             // as this is already done for us in this case
             if (State != ResourceState.Starting)
             {
+                if (!Parse())
+                {
+                    State = ResourceState.Error;
+
+                    return false;
+                }
+
                 // resolve dependencies
                 foreach (var dep in Dependencies)
                 {
@@ -215,6 +222,8 @@ namespace CitizenMP.Server.Resources
 
                 dependantResource.Stop();
             }
+
+            Dependants.Clear();
 
             // dispose of the script environment
             m_scriptEnvironment.Dispose();
