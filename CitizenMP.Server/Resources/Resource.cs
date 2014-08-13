@@ -221,7 +221,9 @@ namespace CitizenMP.Server.Resources
                 }
             }
 
-            foreach (var dependant in Dependants)
+            var dependants = Dependants.GetRange(0, Dependants.Count);
+
+            foreach (var dependant in dependants)
             {
                 var dependantResource = Manager.GetResource(dependant);
 
