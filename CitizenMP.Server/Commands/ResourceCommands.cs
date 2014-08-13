@@ -8,6 +8,24 @@ namespace CitizenMP.Server.Commands
 {
     class ResourceCommands
     {
+        [ConsoleCommand("refresh")]
+        static void Refresh_f(CommandManager manager, string command, string[] args)
+        {
+            var resourceManager = manager.GameServer.ResourceManager;
+
+            try
+            {
+                resourceManager.ScanResources("resources/");
+
+                Game.RconPrint.Print("refresh\n");
+            }
+            catch (Exception e)
+            {
+                resourceManager.Log().Error(() => "Error refreshing resources.", e);
+                Game.RconPrint.Print("Error refreshing resources: {0}\n", e.Message);
+            }
+        }
+
         [ConsoleCommand("stop")]
         static void Stop_f(CommandManager manager, string command, string[] args)
         {
