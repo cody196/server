@@ -62,6 +62,11 @@ namespace CitizenMP.Server.Resources
         {
             get
             {
+                if (CurrentEnvironment.Resource != null && CurrentEnvironment.Resource.State == ResourceState.Parsing)
+                {
+                    return CurrentEnvironment;
+                }
+
                 return (LastEnvironment ?? CurrentEnvironment);
             }
         }
