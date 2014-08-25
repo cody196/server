@@ -127,11 +127,11 @@ namespace CitizenMP.Server.Game
                     thisSize = FRAGMENT_SIZE;
                 }
 
-                var targetBuffer = new byte[buffer.Length + 8];
+                var targetBuffer = new byte[thisSize + 8];
                 Array.Copy(BitConverter.GetBytes(outSequence), targetBuffer, 4);
                 Array.Copy(BitConverter.GetBytes((ushort)start), 0, targetBuffer, 4, 2);
                 Array.Copy(BitConverter.GetBytes((ushort)thisSize), 0, targetBuffer, 6, 2);
-                Array.Copy(buffer, 0, targetBuffer, 8, buffer.Length);
+                Array.Copy(buffer, start, targetBuffer, 8, thisSize);
 
                 m_client.SendRaw(targetBuffer);
 
