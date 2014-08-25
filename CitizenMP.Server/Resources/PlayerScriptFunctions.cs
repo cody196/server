@@ -4,24 +4,37 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using NLua;
+using LuaL = KeraLua.Lua;
+
 namespace CitizenMP.Server.Resources
 {
     class PlayerScriptFunctions
     {
         [LuaFunction("GetPlayers")]
-        static IEnumerable<int> GetPlayers()
+        static LuaTable GetPlayers()
         {
-            var list = new List<int>();
+            var subClients = ClientInstances.Clients.Where(c => c.Value.NetChannel != null).Select(c => c.Value.NetID).ToArray();
 
-            foreach (var client in ClientInstances.Clients)
+            var L = ScriptEnvironment.CurrentEnvironment.NativeLuaState;
+            var lua = ScriptEnvironment.CurrentEnvironment.LuaState;
+
+            LuaL.LuaCreateTable(L, subClients.Length, 0);
+
+            var table = LuaLib.LuaGetTop(L);
+            var i = 1;
+
+            foreach (var client in subClients)
             {
-                if (client.Value.NetChannel != null)
-                {
-                    list.Add(client.Value.NetID);
-                }
+                lua.Push(client);
+                LuaLib.LuaRawSetI(L, table, i);
+
+                i++;
             }
 
-            return list;
+            var luaTable = new LuaTable(LuaLib.LuaRef(L, 1), lua);
+
+            return luaTable;
         }
 
         [LuaFunction("GetPlayerName")]
