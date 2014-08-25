@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,7 +16,9 @@ namespace CitizenMP.Server.Game
 
         private uint m_fragmentSequence;
         private int m_fragmentLength;
-        private MemoryStream m_fragmentBuffer;
+        private byte[] m_fragmentBuffer;
+        private BitArray m_fragmentValidSet;
+        private int m_fragmentLastBit;
         private uint m_inSequence;
         private uint m_outSequence;
         
@@ -58,33 +61,53 @@ namespace CitizenMP.Server.Game
                 {
                     m_fragmentLength = 0;
                     m_fragmentSequence = sequence;
-                    m_fragmentBuffer = new MemoryStream();
+                    m_fragmentBuffer = new byte[65536];
+                    m_fragmentValidSet = new BitArray(65536 / FRAGMENT_SIZE);
+                    m_fragmentLastBit = -1;
                 }
 
-                if (fragmentStart != m_fragmentLength)
+                int fragmentBit = fragmentStart / FRAGMENT_SIZE;
+
+                if (fragmentBit > ((65536 / FRAGMENT_SIZE) - 1))
                 {
                     return false;
                 }
 
-                if (fragmentLength < 0)
+                if (m_fragmentValidSet.Get(fragmentBit))
                 {
                     return false;
                 }
 
-                m_fragmentBuffer.Write(buffer, 8, length - 8);
-                m_fragmentLength = (int)m_fragmentBuffer.Length;
+                m_fragmentValidSet.Set(fragmentBit, true);
 
-                if (fragmentLength == FRAGMENT_SIZE)
+                // append to the buffer
+                Array.Copy(buffer, 8, m_fragmentBuffer, fragmentBit * FRAGMENT_SIZE, length - 8);
+                m_fragmentLength += length - 8;
+
+                if (m_fragmentLength != FRAGMENT_SIZE)
+                {
+                    m_fragmentLastBit = fragmentBit;
+                }
+
+                // check the bits to see if we got the full message
+                if (m_fragmentLastBit == -1)
                 {
                     return false;
                 }
 
-                m_fragmentBuffer.Position = 0;
+                for (int i = 0; i <= m_fragmentLastBit; i++)
+                {
+                    if (!m_fragmentValidSet.Get(i))
+                    {
+                        return false;
+                    }
+                }
 
                 m_inSequence = sequence;
-                m_fragmentLength = 0;
 
-                reader = new BinaryReader(m_fragmentBuffer);
+                reader = new BinaryReader(new MemoryStream(m_fragmentBuffer, 0, m_fragmentLength));
+
+                m_fragmentLength = 0;
 
                 return true;
             }
