@@ -260,6 +260,11 @@ namespace CitizenMP.Server.Resources
             return true;
         }
 
+        public bool HasRef(int reference, uint instance)
+        {
+            return (m_scriptEnvironment != null && m_scriptEnvironment.InstanceID == instance);
+        }
+
         public void Tick()
         {
             if (m_scriptEnvironment != null)

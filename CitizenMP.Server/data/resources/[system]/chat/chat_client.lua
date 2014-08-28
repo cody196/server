@@ -2,9 +2,10 @@ local chatBuffer = {}
 local chatActive = false
 
 AddUIHandler('getNew', function(data, cb)
-    cb(chatBuffer)
-
+    local localBuf = chatBuffer
     chatBuffer = {}
+
+    cb(localBuf)
 end)
 
 AddEventHandler('chatMessage', function(name, color, message)

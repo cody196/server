@@ -21,16 +21,6 @@ AddEventHandler('getResourceInitFuncs', function(isPreParse, add)
     end)
 end)
 
-AddEventHandler('playerActivated', function()
-    if getCurrentGameType() then
-        TriggerClientEvent('onClientGameTypeStart', source, getCurrentGameType())
-    end
-
-    if getCurrentMap() then
-        TriggerClientEvent('onClientMapStart', source, getCurrentMap())
-    end
-end)
-
 AddEventHandler('onResourceStarting', function(resource)
     if maps[resource] then
         if getCurrentMap() and getCurrentMap() ~= resource then
@@ -38,6 +28,25 @@ AddEventHandler('onResourceStarting', function(resource)
                 print("Changing map from " .. getCurrentMap() .. " to " .. resource)
 
                 changeMap(resource)
+            else
+                -- check if there's only one possible game type for the map
+                local map = maps[resource]
+                local count = 0
+                local gt
+
+                for type, flag in pairs(map.gameTypes) do
+                    if flag then
+                        count = count + 1
+                        gt = type
+                    end
+                end
+
+                if count == 1 then
+                    print("Changing map from " .. getCurrentMap() .. " to " .. resource .. " (gt " .. gt .. ")")
+
+                    changeGameType(gt)
+                    changeMap(resource)
+                end
             end
 
             CancelEvent()
@@ -117,6 +126,24 @@ AddEventHandler('onResourceStart', function(resource)
     end
 end)
 
+AddEventHandler('mapmanager:roundEnded', function()
+    -- set a timeout as we don't want to return to a dead environment
+    SetTimeout(50, function()
+        local possibleMaps = {}
+
+        for map, data in pairs(maps) do
+            if data.gameTypes[currentGameType] then
+                table.insert(possibleMaps, map)
+            end
+        end
+
+        if #possibleMaps > 0 then
+            local rnd = math.random(#possibleMaps)
+            changeMap(possibleMaps[rnd])
+        end
+    end)
+end)
+
 AddEventHandler('onResourceStop', function(resource)
     if resource == currentGameType then
         TriggerEvent('onGameTypeStop', resource)
@@ -147,7 +174,28 @@ AddEventHandler('rconCommand', function(commandName, args)
         end
 
         if not doesMapSupportGameType(currentGameType, args[1]) then
-            RconPrint('map ' .. args[1] .. ' does not support ' .. currentGameType .. "\n")
+            local map = maps[args[1]]
+            local count = 0
+            local gt
+
+            for type, flag in pairs(map.gameTypes) do
+                if flag then
+                    count = count + 1
+                    gt = type
+                end
+            end
+
+            if count == 1 then
+                print("Changing map from " .. getCurrentMap() .. " to " .. args[1] .. " (gt " .. gt .. ")")
+
+                changeGameType(gt)
+                changeMap(args[1])
+
+                RconPrint('map ' .. args[1] .. "\n")
+            else
+                RconPrint('map ' .. args[1] .. ' does not support ' .. currentGameType .. "\n")
+            end
+
             CancelEvent()
 
             return

@@ -5,6 +5,7 @@ PreParseResources:
 
 AutoStartResources:
     - gameInit # this resource (or equivalent) is pretty much required for the game to start; it'll crash on loading otherwise
+    - baseevents
     - sessionmanager
     - spawnmanager
     - mapmanager
@@ -12,14 +13,17 @@ AutoStartResources:
     - rconlog
     - betaguns
     - keks
-    - play-viiv
-    - viiv-core
-    - viiv-additional
-    - viiv-data
-    - viiv-tdd
+    #- play-midpa
+    - obituary
+    - obituary-deaths
+    - race-test
+    #- viiv-core
+    #- viiv-additional
+    #- viiv-data
+    #- viiv-tdd
 
 RconPassword: lovely
 
-Hostname: ^2greeen ViIV testing
+Hostname: INTERNETWORKING DEVELOPMENT
 
 PlatformServer: iv-platform.prod.citizen.re

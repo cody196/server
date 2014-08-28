@@ -46,6 +46,12 @@ AddEventHandler('onClientResourceStart', function(res)
 end)
 
 AddEventHandler('onClientResourceStop', function(res)
+    if maps[res] then
+        TriggerEvent('onClientMapStop', res)
+    elseif gametypes[res] then
+        TriggerEvent('onClientGameTypeStop', res)
+    end
+
     if undoCallbacks[res] then
         for _, cb in ipairs(undoCallbacks[res]) do
             cb()

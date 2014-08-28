@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using NLua;
+using KeraLua;
 using LuaL = KeraLua.Lua;
 
 namespace CitizenMP.Server.Resources
@@ -47,7 +48,7 @@ namespace CitizenMP.Server.Resources
         }
 
         [LuaFunction("GetFuncRef")]
-        static void GetFuncRef_f(LuaFunction func, out int reference, out string resource)
+        static void GetFuncRef_f(LuaFunction func, out int reference, out uint instance, out string resource)
         {
             var lua = ScriptEnvironment.CurrentEnvironment.LuaState;
             var L = ScriptEnvironment.CurrentEnvironment.NativeLuaState;
@@ -56,10 +57,11 @@ namespace CitizenMP.Server.Resources
             var funcRef = LuaL.LuaLRef(L, -1001000);
 
             reference = funcRef;
+            instance = ScriptEnvironment.CurrentEnvironment.InstanceID;
             resource = ScriptEnvironment.CurrentEnvironment.Resource.Name;
         }
 
-        static Resource ValidateResourceAndRef(int reference, string resourceName)
+        static Resource ValidateResourceAndRef(int reference, uint instance, string resourceName)
         {
             var resource = ScriptEnvironment.CurrentEnvironment.Resource.Manager.GetResource(resourceName);
 
@@ -73,19 +75,29 @@ namespace CitizenMP.Server.Resources
                 throw new ArgumentException("Resource wasn't running.");
             }
 
-            // TODO: hasRef
+            if (!resource.HasRef(reference, instance))
+            {
+                return null;
+            }
 
             return resource;
         }
 
         delegate object CallDelegate(params object[] args);
 
-        [LuaFunction("GetFuncFromRef")]
-        static LuaUserData GetFuncFromRef_f(int reference, string resourceName)
-        {
-            var resource = ValidateResourceAndRef(reference, resourceName);
+        static List<KeraLua.LuaNativeFunction> ms_nativeFunctions = new List<KeraLua.LuaNativeFunction>();
 
-            var lua = ScriptEnvironment.CurrentEnvironment.LuaState;
+        [LuaFunction("GetFuncFromRef")]
+        //static LuaUserData GetFuncFromRef_f(int reference, uint instance, string resourceName)
+        static int GetFuncFromRef_f(LuaState ll)
+        {
+            int reference = (int)LuaL.LuaNetToNumber(ll, 1);
+            uint instance = (uint)LuaL.LuaNetToNumber(ll, 2);
+            string resourceName = LuaLib.LuaToString(ll, 3);
+
+            var resource = ValidateResourceAndRef(reference, instance, resourceName);
+
+            //var lua = ScriptEnvironment.CurrentEnvironment.LuaState;
             var L = ScriptEnvironment.CurrentEnvironment.NativeLuaState;
 
             // start a metatable
@@ -93,24 +105,39 @@ namespace CitizenMP.Server.Resources
 
             int metatable = LuaL.LuaGetTop(L);
 
-            lua.Push("__gc");
+            LuaL.LuaPushString(L, "__gc");
 
-            lua.Push(new LuaFunction((l) =>
+            KeraLua.LuaNativeFunction gcFunc = null, callFunc = null;
+            
+            gcFunc = (l) =>
             {
-                var thisResource = ValidateResourceAndRef(reference, resourceName);
+                var thisResource = ValidateResourceAndRef(reference, instance, resourceName);
 
-                thisResource.RemoveRef(reference);
+                if (thisResource != null)
+                {
+                    thisResource.RemoveRef(reference);
+                }
+
+                lock (ms_nativeFunctions)
+                {
+                    ms_nativeFunctions.Remove(callFunc);
+                    ms_nativeFunctions.Remove(gcFunc);
+                }
 
                 return 0;
-            }, lua));
+            };
+
+            LuaL.LuaPushStdCallCFunction(L, gcFunc);
 
             LuaL.LuaSetTable(L, metatable);
 
             LuaL.LuaPushString(L, "__call");
 
-            LuaL.LuaPushStdCallCFunction(L, (l) =>
+            callFunc = (l) =>
             {
-                var thisResource = ValidateResourceAndRef(reference, resourceName);
+                var thisResource = ValidateResourceAndRef(reference, instance, resourceName);
+
+                System.Diagnostics.Debug.Assert(thisResource != null, "resource == null");
 
                 // serialize
                 int nargs = LuaL.LuaGetTop(L);
@@ -124,17 +151,26 @@ namespace CitizenMP.Server.Resources
                 DeserializeArguments(L, retval, out nargs);
 
                 return nargs;
-            });
+            };
+
+            LuaL.LuaPushStdCallCFunction(L, callFunc);
+
+            lock (ms_nativeFunctions)
+            {
+                ms_nativeFunctions.Add(gcFunc);
+                ms_nativeFunctions.Add(callFunc);
+            }
 
             LuaL.LuaSetTable(L, metatable);
 
             // create a dummy userdata
             var resourceNameBytes = Encoding.UTF8.GetBytes(resourceName);
-                        var bytes = new byte[4 + resourceNameBytes.Length + 2];
+                        var bytes = new byte[4 + 4 + resourceNameBytes.Length + 2];
 
             bytes[0] = 1;
             Array.Copy(BitConverter.GetBytes(reference), 0, bytes, 1, 4);
-            Array.Copy(resourceNameBytes, 0, bytes, 5, resourceNameBytes.Length);
+            Array.Copy(BitConverter.GetBytes(instance), 0, bytes, 1 + 4, 4);
+            Array.Copy(resourceNameBytes, 0, bytes, 5 + 4, resourceNameBytes.Length);
 
             var udata = LuaL.LuaNewUserData(L, (uint)(bytes.Length));
             Marshal.Copy(bytes, 0, udata, bytes.Length);
@@ -144,10 +180,7 @@ namespace CitizenMP.Server.Resources
 
             LuaL.LuaRemove(L, metatable);
 
-            var udataRef = LuaL.LuaLRef(L, -1001000);
-            var udataNative = new LuaUserData(udataRef, ScriptEnvironment.CurrentEnvironment.LuaState);
-
-            return udataNative;
+            return 1;
         }
 
         public static void DeserializeArguments(KeraLua.LuaState L, string arguments, out int numArgs)
@@ -162,6 +195,11 @@ namespace CitizenMP.Server.Resources
                 foreach (var value in table.Values)
                 {
                     ScriptEnvironment.CurrentEnvironment.LuaState.Push(value);
+
+                    if (value is IDisposable)
+                    {
+                        ((IDisposable)value).Dispose();
+                    }
                 }
 
                 table.Dispose();
@@ -186,14 +224,37 @@ namespace CitizenMP.Server.Resources
             }
 
             // call C function
-            LuaL.LuaPushValue(L, table);
-            var tableRef = LuaL.LuaLRef(L, -1001000); // NOTE: THIS MAY DIFFER BETWEEN LUA VERSIONS (5.1 USES -10000; WE USE 5.2 RIGHT NOW)
-            var tableNative = new LuaTable(tableRef, ScriptEnvironment.CurrentEnvironment.LuaState);
+            //LuaL.LuaPushValue(L, table);
+            //var tableRef = LuaL.LuaLRef(L, -1001000); // NOTE: THIS MAY DIFFER BETWEEN LUA VERSIONS (5.1 USES -10000; WE USE 5.2 RIGHT NOW)
+            //var tableNative = new LuaTable(tableRef, ScriptEnvironment.CurrentEnvironment.LuaState);
 
-            var packer = (Func<LuaTable, string>)ScriptEnvironment.CurrentEnvironment.LuaState.GetFunction(typeof(Func<LuaTable, string>), "msgpack.pack");
-            var str = packer(tableNative);
+            //var packer = (Func<LuaTable, string>)ScriptEnvironment.CurrentEnvironment.LuaState.GetFunction(typeof(Func<LuaTable, string>), "msgpack.pack");
+            //var str = packer(tableNative);
 
-            tableNative.Dispose();
+            //tableNative.Dispose();
+
+            //return str;
+
+            LuaLib.LuaGetGlobal(L, "msgpack");
+
+            int jsonTable = LuaLib.LuaGetTop(L);
+
+            LuaLib.LuaPushString(L, "pack");
+            LuaLib.LuaGetTable(L, -2);
+
+            LuaLib.LuaRemove(L, jsonTable);
+
+            // push the serialized data
+            LuaLib.LuaPushValue(L, table);
+
+            if (LuaLib.LuaPCall(L, 1, 1, 0) != 0)
+            {
+                LuaLib.LuaPushNil(L);
+            }
+
+            var str = LuaLib.LuaToString(L, -1);
+
+            LuaLib.LuaRemove(L, table);
 
             return str;
         }
@@ -218,14 +279,31 @@ namespace CitizenMP.Server.Resources
                 LuaL.LuaRawSetI(L, table, i + 1);
             }
 
-            LuaL.LuaPushValue(L, table);
-            var tableRef = LuaL.LuaLRef(L, -1001000); // NOTE: THIS MAY DIFFER BETWEEN LUA VERSIONS (5.1 USES -10000; WE USE 5.2 RIGHT NOW)
-            var tableNative = new LuaTable(tableRef, lua);
+            //LuaL.LuaPushValue(L, table);
+            //var tableRef = LuaL.LuaLRef(L, -1001000); // NOTE: THIS MAY DIFFER BETWEEN LUA VERSIONS (5.1 USES -10000; WE USE 5.2 RIGHT NOW)
+            //var tableNative = new LuaTable(tableRef, lua);
 
-            var packer = (Func<LuaTable, string>)lua.GetFunction(typeof(Func<LuaTable, string>), "msgpack.pack");
-            var str = packer(tableNative);
+            // get C function
+            LuaLib.LuaGetGlobal(L, "msgpack");
 
-            tableNative.Dispose();
+            int jsonTable = LuaLib.LuaGetTop(L);
+
+            LuaLib.LuaPushString(L, "pack");
+            LuaLib.LuaGetTable(L, -2);
+
+            LuaLib.LuaRemove(L, jsonTable);
+
+            // push the serialized data
+            LuaLib.LuaPushValue(L, table);
+
+            if (LuaLib.LuaPCall(L, 1, 1, 0) != 0)
+            {
+                LuaLib.LuaPushNil(L);
+            }
+
+            var str = LuaLib.LuaToString(L, -1);
+
+            LuaLib.LuaRemove(L, table);
 
             return str;
         }

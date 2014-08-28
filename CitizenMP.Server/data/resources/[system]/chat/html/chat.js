@@ -88,17 +88,23 @@ $(function()
         }
     });
 
-    // on poll, request this
-    //registerPollFunction(function()
-    window.addEventListener('message', function(event)
+    var getLock = 0;
+
+    function refetchData()
     {
-        if (event.data.type != 'poll')
-        {
-            return;
-        }
+        getLock = 0;
 
         $.get('http://chat/getNew', function(data)
         {
+            if (getLock > 1)
+            {
+                setTimeout(refetchData, 50);
+
+                return;
+            }
+
+            getLock++;
+
             data.forEach(function(item)
             {
                 if (item.meta && item.meta == 'openChatBox')
@@ -138,5 +144,17 @@ $(function()
                 startHideChat();
             });
         });
+    }
+
+    // on poll, request this
+    //registerPollFunction(function()
+    window.addEventListener('message', function(event)
+    {
+        if (event.data.type != 'poll')
+        {
+            return;
+        }
+
+        refetchData();
     }, false);
 });

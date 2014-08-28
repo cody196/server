@@ -1,3 +1,5 @@
+print("plaaaaay")
+
 resource_type 'gametype' { name = 'Freeroam' }
 
 dependencies {
@@ -7,3 +9,5 @@ dependencies {
 
 client_script 'play_client.lua'
 server_script 'play_server.lua'
+
+print("plaaaaay end")

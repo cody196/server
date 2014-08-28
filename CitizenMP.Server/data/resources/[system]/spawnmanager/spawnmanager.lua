@@ -161,69 +161,76 @@ function loadScene(x, y, z)
 end
 
 -- spawns the current player at a certain spawn point index (or a random one, for that matter)
-function spawnPlayer(spawnIdx)
-    -- if the spawn isn't set, select a random one
-    if not spawnIdx then
-        spawnIdx = GenerateRandomIntInRange(1, #spawnPoints + 1, _i)
-    end
+function spawnPlayer(spawnIdx, cb)
+    CreateThread(function()
+        -- if the spawn isn't set, select a random one
+        if not spawnIdx then
+            spawnIdx = GenerateRandomIntInRange(1, #spawnPoints + 1, _i)
+        end
 
-    -- get the spawn from the array
-    local spawn = spawnPoints[spawnIdx]
+        -- get the spawn from the array
+        local spawn = spawnPoints[spawnIdx]
 
-    -- validate the index
-    if not spawn then
-        echo("tried to spawn at an invalid spawn index\n")
+        -- validate the index
+        if not spawn then
+            echo("tried to spawn at an invalid spawn index\n")
 
-        return
-    end
+            return
+        end
 
-    -- freeze the local player
-    freezePlayer(GetPlayerId(), true)
+        -- freeze the local player
+        freezePlayer(GetPlayerId(), true)
 
-    -- load the model for this spawn
-    while not HasModelLoaded(spawn.model) do
-        RequestModel(spawn.model)
+        -- load the model for this spawn
+        while not HasModelLoaded(spawn.model) do
+            RequestModel(spawn.model)
 
-        Wait(0)
-    end
+            Wait(0)
+        end
 
-    -- change the player model
-    ChangePlayerModel(GetPlayerId(), spawn.model)
+        -- change the player model
+        ChangePlayerModel(GetPlayerId(), spawn.model)
 
-    -- release the player model
-    MarkModelAsNoLongerNeeded(spawn.model)
+        -- release the player model
+        MarkModelAsNoLongerNeeded(spawn.model)
 
-    -- preload collisions for the spawnpoint
-    RequestCollisionAtPosn(spawn.x, spawn.y, spawn.z)
+        -- preload collisions for the spawnpoint
+        RequestCollisionAtPosn(spawn.x, spawn.y, spawn.z)
 
-    -- spawn the player
-    ResurrectNetworkPlayer(GetPlayerId(), spawn.x, spawn.y, spawn.z, spawn.heading)
+        -- spawn the player
+        ResurrectNetworkPlayer(GetPlayerId(), spawn.x, spawn.y, spawn.z, spawn.heading)
 
-    -- gamelogic-style cleanup stuff
-    local ped = GetPlayerPed()
+        -- gamelogic-style cleanup stuff
+        local ped = GetPlayerPed()
 
-    ClearCharTasksImmediately(ped)
-    SetCharHealth(ped, 300) -- TODO: allow configuration of this?
-    RemoveAllCharWeapons(ped)
-    ClearWantedLevel(GetPlayerId())
+        ClearCharTasksImmediately(ped)
+        SetCharHealth(ped, 300) -- TODO: allow configuration of this?
+        RemoveAllCharWeapons(ped)
+        ClearWantedLevel(GetPlayerId())
 
-    -- why is this even a flag?
-    SetCharWillFlyThroughWindscreen(ped, false)
+        -- why is this even a flag?
+        SetCharWillFlyThroughWindscreen(ped, false)
 
-    -- set primary camera heading
-    SetGameCamHeading(spawn.heading)
+        -- set primary camera heading
+        --SetGameCamHeading(spawn.heading)
+        CamRestoreJumpcut(GetGameCam())
 
-    -- load the scene; streaming expects us to do it
-    ForceLoadingScreen(true)
-    --loadScene(spawn.x, spawn.y, spawn.z)
-    ForceLoadingScreen(false)
+        -- load the scene; streaming expects us to do it
+        ForceLoadingScreen(true)
+        --loadScene(spawn.x, spawn.y, spawn.z)
+        ForceLoadingScreen(false)
 
-    DoScreenFadeIn(500)
+        DoScreenFadeIn(500)
 
-    -- and unfreeze the player
-    freezePlayer(GetPlayerId(), false)
+        -- and unfreeze the player
+        freezePlayer(GetPlayerId(), false)
 
-    TriggerEvent('playerSpawned')
+        TriggerEvent('playerSpawned', spawn)
+
+        if cb then
+            cb(spawn)
+        end
+    end)
 end
 
 -- automatic spawning monitor thread, too

@@ -19,6 +19,7 @@ namespace CitizenMP.Server.Resources
         private NLua.Lua m_luaState;
 
         private static List<KeyValuePair<string, MethodInfo>> ms_luaFunctions = new List<KeyValuePair<string, MethodInfo>>();
+        private static List<KeyValuePair<string, LuaNativeFunction>> ms_nativeFunctions = new List<KeyValuePair<string, LuaNativeFunction>>();
 
         [ThreadStatic]
         private static ScriptEnvironment ms_currentEnvironment;
@@ -95,6 +96,10 @@ namespace CitizenMP.Server.Resources
             }
         }
 
+        private static Random ms_instanceGen;
+
+        public uint InstanceID { get; set; }
+
         static ScriptEnvironment()
         {
             var types = Assembly.GetExecutingAssembly().GetTypes();
@@ -109,15 +114,29 @@ namespace CitizenMP.Server.Resources
 
                     if (luaAttribute != null)
                     {
-                        ms_luaFunctions.Add(new KeyValuePair<string, MethodInfo>(luaAttribute.FunctionName, method));
+                        var parameters = method.GetParameters();
+
+                        if (parameters.Length == 1 && parameters[0].ParameterType == typeof(LuaState))
+                        {
+                            LuaNativeFunction function = (LuaNativeFunction)method.CreateDelegate(typeof(LuaNativeFunction));
+                            ms_nativeFunctions.Add(new KeyValuePair<string, LuaNativeFunction>(luaAttribute.FunctionName, function));
+                        }
+                        else
+                        {
+                            ms_luaFunctions.Add(new KeyValuePair<string, MethodInfo>(luaAttribute.FunctionName, method));
+                        }
                     }
                 }
             }
+
+            ms_instanceGen = new Random();
         }
 
         public ScriptEnvironment(Resource resource)
         {
             m_resource = resource;
+
+            InstanceID = (uint)ms_instanceGen.Next();
         }
 
         public bool Create()
@@ -132,24 +151,35 @@ namespace CitizenMP.Server.Resources
                 LuaLib.LuaNewTable(m_luaNative);
                 LuaLib.LuaSetGlobal(m_luaNative, "luanet");
 
+                InitHandler = null;
+
                 m_luaState = new NLua.Lua(m_luaNative);
 
-                lastEnvironment = ms_currentEnvironment;
-                ms_currentEnvironment = this;
-
-                oldLastEnvironment = LastEnvironment;
-                LastEnvironment = lastEnvironment;
-
-                // register our global functions
-                foreach (var func in ms_luaFunctions)
+                lock (m_luaState)
                 {
-                    m_luaState.RegisterFunction(func.Key, func.Value);
-                }
+                    lastEnvironment = ms_currentEnvironment;
+                    ms_currentEnvironment = this;
 
-                // load global data files
-                m_luaState.DoFile("system/resource_init.lua");
-                m_luaState.DoFile("system/MessagePack.lua");
-                m_luaState.DoFile("system/dkjson.lua");
+                    oldLastEnvironment = LastEnvironment;
+                    LastEnvironment = lastEnvironment;
+
+                    // register our global functions
+                    foreach (var func in ms_luaFunctions)
+                    {
+                        m_luaState.RegisterFunction(func.Key, func.Value);
+                    }
+
+                    foreach (var func in ms_nativeFunctions)
+                    {
+                        LuaLib.LuaPushStdCallCFunction(m_luaNative, func.Value);
+                        LuaLib.LuaSetGlobal(m_luaNative, func.Key);
+                    }
+
+                    // load global data files
+                    m_luaState.DoFile("system/resource_init.lua");
+                    m_luaState.DoFile("system/MessagePack.lua");
+                    m_luaState.DoFile("system/dkjson.lua");
+                }
 
                 return true;
             }
@@ -199,7 +229,10 @@ namespace CitizenMP.Server.Resources
                 // load scripts defined in this resource
                 foreach (var script in m_resource.ServerScripts)
                 {
-                    m_luaState.DoFile(Path.Combine(m_resource.Path, script));
+                    lock (m_luaState)
+                    {
+                        m_luaState.DoFile(Path.Combine(m_resource.Path, script));
+                    }
                 }
 
                 return true;
@@ -234,9 +267,12 @@ namespace CitizenMP.Server.Resources
                 oldLastEnvironment = LastEnvironment;
                 LastEnvironment = lastEnvironment;
 
-                var initFunction = m_luaState.LoadFile(Path.Combine(m_resource.Path, "__resource.lua"));
+                lock (m_luaState)
+                {
+                    var initFunction = m_luaState.LoadFile(Path.Combine(m_resource.Path, "__resource.lua"));
 
-                InitHandler.Call(initFunction, preParse);
+                    InitHandler.Call(initFunction, preParse);
+                }
 
                 return true;
             }
@@ -317,6 +353,14 @@ namespace CitizenMP.Server.Resources
                     }
                 }
 
+                foreach (var value in table.Values)
+                {
+                    if (value is IDisposable)
+                    {
+                        ((IDisposable)value).Dispose();
+                    }
+                }
+
                 table.Dispose();
 
                 ms_currentEnvironment = lastEnvironment;
@@ -352,6 +396,15 @@ namespace CitizenMP.Server.Resources
 
                 // invoke
                 var objects = func.Call(args);
+
+                foreach (var value in table.Values)
+                {
+                    if (value is IDisposable)
+                    {
+                        ((IDisposable)value).Dispose();
+                    }
+                }
+
                 table.Dispose();
 
                 // pack return values
