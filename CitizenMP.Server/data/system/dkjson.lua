@@ -1,4 +1,6 @@
 -- Module options:
+return
+
 local always_try_using_lpeg = true
 local register_global_module_table = true
 local global_module_name = 'json'
@@ -42,9 +44,9 @@ SOFTWARE.
 --]==]
 
 -- global dependencies:
-local pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset =
-      pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset
-local error, require, pcall, select = error, require, pcall, select
+--local pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset =
+--      pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset
+--local error, require, pcall, select = error, require, pcall, select
 local floor, huge = math.floor, math.huge
 local strrep, gsub, strsub, strbyte, strchar, strfind, strlen, strformat =
       string.rep, string.gsub, string.sub, string.byte, string.char,

@@ -1,33 +1,109 @@
--- compat setfenv function
-if not setfenv then
-  local function findenv(f)
-    if type(f) ~= 'function' then
-        return nil
-    end
-
-    local level = 1
-    repeat
-      local name, value = debug.getupvalue(f, level)
-      if name == '_ENV' then return level, value end
-      level = level + 1
-    until name == nil
-    return nil end
-  getfenv = function (f) return(select(2, findenv(f)) or _G) end
-  setfenv = function (f, t)
-    local level = findenv(f)
-    if level then debug.setupvalue(f, level, t) end
-    return f end
-end
-
 -- local resource init stuff (similar to client resource_init)
 RegisterInitHandler(function(initScript, isPreParse)
 	local env = {
-
+        _VERSION     = _VERSION,
+        assert       = assert,
+        error        = error,
+        getmetatable = getmetatable,
+        ipairs       = ipairs,
+        next         = next,
+        pairs        = pairs,
+        pcall        = pcall,
+        print        = print,
+        rawequal     = rawequal,
+        rawget       = rawget,
+        rawlen       = rawlen,
+        rawset       = rawset,
+        select       = select,
+        setmetatable = setmetatable,
+        tonumber     = tonumber,
+        tostring     = tostring,
+        type         = type,
+        xpcall       = xpcall,
+        bit32 = {
+            arshift = bit32.arshift,
+            band    = bit32.band,
+            bnot    = bit32.bnot,
+            bor     = bit32.bor,
+            btest   = bit32.btest,
+            bxor    = bit32.bxor,
+            extract = bit32.extract,
+            lrotate = bit32.lrotate,
+            lshift  = bit32.lshift,
+            replace = bit32.replace,
+            rrotate = bit32.rrotate,
+            rshift  = bit32.rshift
+        },
+        coroutine = {
+            create  = coroutine.create,
+            resume  = coroutine.resume,
+            running = coroutine.running,
+            status  = coroutine.status,
+            wrap    = coroutine.wrap,
+            yield   = coroutine.yield
+        },
+        math = {
+            abs        = math.abs,
+            acos       = math.acos,
+            asin       = math.asin,
+            atan       = math.atan,
+            atan2      = math.atan2,
+            ceil       = math.ceil,
+            cos        = math.cos,
+            cosh       = math.cosh,
+            deg        = math.deg,
+            exp        = math.exp,
+            floor      = math.floor,
+            fmod       = math.fmod,
+            frexp      = math.frexp,
+            huge       = math.huge,
+            ldexp      = math.ldexp,
+            log        = math.log,
+            max        = math.max,
+            min        = math.min,
+            modf       = math.modf,
+            pi         = math.pi,
+            pow        = math.pow,
+            rad        = math.rad,
+            random     = math.random,
+            randomseed = math.randomseed,
+            sin        = math.sin,
+            sinh       = math.sinh,
+            sqrt       = math.sqrt,
+            tan        = math.tan,
+            tanh       = math.tanh
+        },
+        string = {
+            byte    = string.byte,
+            char    = string.char,
+            dump    = string.dump,
+            find    = string.find,
+            format  = string.format,
+            gmatch  = string.gmatch,
+            gsub    = string.gsub,
+            len     = string.len,
+            lower   = string.lower,
+            match   = string.match,
+            rep     = string.rep,
+            reverse = string.reverse,
+            sub     = string.sub,
+            upper   = string.upper
+        },
+        table = {
+            concat = table.concat,
+            insert = table.insert,
+            pack   = table.pack,
+            remove = table.remove,
+            sort   = table.sort,
+            unpack = table.unpack
+        }
 	}
 
     TriggerEvent('getResourceInitFuncs', isPreParse, function(key, cb)
         env[key] = cb
     end)
+
+    local pr = print
 
 	if not isPreParse then
 		env.server_scripts = function(n)
@@ -88,11 +164,18 @@ RegisterInitHandler(function(initScript, isPreParse)
 		env.dependency = env.dependencies
 	end
 
-	local mt = {
-		__index = function(t, k)
-			if rawget(t, k) ~= nil then return rawget(t, k) end
+    local rawget_ = rawget
+    local print_ = print
 
-			if _G[k] then return _G[k] end
+	local mt = {
+		__index = function(t, k) : object
+            if env[k] ~= nil then
+                return env[k]
+            end
+
+			if rawget_(t, k) ~= nil then
+                return rawget_(t, k)
+            end
 
 			-- as we're not going to return nothing here (to allow unknown directives to be ignored)
 			local f = function()
@@ -103,244 +186,34 @@ RegisterInitHandler(function(initScript, isPreParse)
 		end
 	}
 
-	setmetatable(env, mt)
-	setfenv(initScript, env)
+    for k, v in pairs(env) do
+        if type(v) == 'function' then
+            env[k] = function(...)
+                _G.__metatable = nil
+
+                local rv = v(...)
+
+                _G.__metatable = mt
+
+                return rv
+            end
+        end
+    end
+
+    _G.__metatable = mt
+	--setmetatable(env, mt)
+	--setfenv(initScript, env)
 
 	initScript()
 
-    --[[print('bndry')
+    --env = nil
 
-    local mt2 = getmetatable(env['resource_type'])
+    --setfenv(initScript, _G)
 
-    if mt2 then
-        for k, v in pairs(mt2) do
-            print(k, v)
-        end
-    end]]
-
---    local rt = env['resource_type']
-
-    env = nil
-
-    setfenv(initScript, _G)
-
-    collectgarbage('collect')
+    _G.__metatable = nil
 
 --    print('rc', findallpaths(rt))
 end)
-
-local List = {}
-
-function List.new ()
-	return {first = 0, last = -1}
-end
-
-function List.push (list, value)
-	local last = list.last + 1
-    list.last = last
-    list[last] = value
-end
-
-function List.pop (list)
-    local first = list.first
-    if first > list.last then error("list is empty") end
-    local value = list[first]
-    list[first] = nil
-    list.first = first + 1
-    return value
-end
-
-function List.isempty (list)
-	return list.first > list.last
-end
-
--- Counts all references for a given object
-function countreferences(value)
-	local count = -1
-	local f = function(from, to, how, v)
-		if to == value then
-			count = count + 1
-		end
-	end
-	traverse({edge=f}, {count, f})
-	return count
-end
-
--- Prints all paths to an object
-function findallpaths(obj)
-
-	local comefrom = {}
-	local f = function(from, to, how, value)
-		if not comefrom[to] then comefrom[to] = {} end
-		table.insert(comefrom[to], 1, {f = from, h = how, v=value})
-	end
-
-	traverse({edge=f}, {comefrom, f})
-
-
-	local function printpath(to)
-		if not to or comefrom[to].visited or to == _G then
-			print("-----")
-			return
-		end
-		comefrom[to].visited = true
-		for i=1, #comefrom[to] do
-			local tfrom = comefrom[to][i].f
-			print("from: ", tfrom, "\nhow:", comefrom[to][i].h,
-					"\nvalue:", comefrom[to][i].v)
-			printpath(tfrom)
-		end
-	end
-
-	printpath(obj)
-
-end
-
--- Main function
--- 'funcs' is a table that contains a funcation for every lua type and also the
--- function edge edge (traverseedge).
-function traverse(funcs, ignoreobjs)
-
-	-- The keys of the marked table are the objetcts (for example, table: 00442330).
-	-- The value of each key is true if the object has been found and false
-	-- otherwise.
-	local env = {marked = {}, list=List.new(), funcs=funcs}
-
-	if ignoreobjs then
-		for i=1, #ignoreobjs do
-			env.marked[ignoreobjs[i]] = true
-		end
-	end
-
-	env.marked["gc"] = true
-	--env.marked[gc] = true
-
-	-- marks and inserts on the list
-	edge(env, nil, "_G", "isname", nil)
-	edge(env, nil, _G, "key", "_G")
-
-	-- traverses the active thread
-	-- inserts the local variables
-	-- interates over the function on the stack, starting from the one that
-	-- called traverse
-	for i=2, math.huge do
-		local info = debug.getinfo(i, "f")
-		if not info then break end
-		for j=1, math.huge do
-			local n, v = debug.getlocal(i, j)
-			if not n then break end
-
-			edge(env, nil, n, "isname", nil)
-			edge(env, nil, v, "local", n)
-		end
-	end
-
- 	while not List.isempty(env.list) do
-
-		local obj = List.pop(env.list)
- 		local t = type(obj)
- 		_G["traverse" .. t](env, obj)
-
-	end
-
-end
-
-function traversetable(env, obj)
-
-	local f = env.funcs.table
-	if f then f(obj) end
-
-	for key, value in pairs(obj) do
-		edge(env, obj, key, "iskey", nil)
-		edge(env, obj, value, "key", key)
-	end
-
-	local mtable = debug.getmetatable(obj)
-	if mtable then edge(env, obj, mtable, "ismetatable", nil) end
-
-end
-
-function traversestring(env, obj)
-	local f = env.funcs.string
-	if f then f(obj) end
-
-end
-
-function traverseuserdata(env, obj)
-	local f = env.funcs.userdata
-	if f then f(obj) end
-
-	local mtable = debug.getmetatable(obj)
-	if mtable then edge(env, obj, mtable, "ismetatable", nil) end
-
-	local fenv = getfenv(obj)
-	if fenv then edge(env, obj, fenv, "environment", nil) end
-
-end
-
-function traversefunction(env, obj)
-	local f = env.funcs.func
-	if f then f(obj) end
-
-	-- gets the upvalues
-	local i = 1
-	while true do
-		local n, v = debug.getupvalue(obj, i)
-		if not n then break end -- when there is no upvalues
-		edge(env, obj, n, "isname", nil)
-		edge(env, obj, v, "upvalue", n)
-		i = i + 1
-	end
-
-	local fenv = getfenv(obj)
-	edge(env, obj, fenv, "enviroment", nil)
-
-end
-
-function traversethread(env, t)
-	local f = env.funcs.thread
-	if f then f(t) end
-
-	for i=1, math.huge do
-		local info = debug.getinfo(t, i, "f")
-		if not info then break end
-		for j=1, math.huge do
-			local n, v = debug.getlocal(t, i , j)
-			if not n then break end
-			print(n, v)
-
-			edge(env, nil, n, "isname", nil)
-			edge(env, nil, v, "local", n)
-		end
-	end
-
-	local fenv = getfenv(t)
-	edge(env, t, fenv, "enviroment", nil)
-
-end
-
-
--- 'how' is a string that identifies the content of 'to' and 'value':
--- 		if 'how' is "iskey", then 'to' é is a key and 'value' is nil.
--- 		if 'how' is "key", then 'to' is an object and 'value' is the name of the
---		key.
-function edge(env, from, to, how, value)
-
-	local t = type(to)
-
-	if to and (t~="boolean") and (t~="number") and (t~="new") then
-		-- If the destination object has not been found yet
-		if not env.marked[to] then
-			env.marked[to] = true
-			List.push(env.list, to) -- puts on the list to be traversed
-		end
-
-		local f = env.funcs.edge
-		if f then f(from, to, how, value) end
-
-	end
-
-end
 
 -- nothing, yet
 

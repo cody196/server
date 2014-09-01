@@ -4,8 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using NLua;
-using LuaL = KeraLua.Lua;
+using Neo.IronLua;
 
 using CitizenMP.Server.Game;
 
@@ -13,16 +12,18 @@ namespace CitizenMP.Server.Resources
 {
     class RconScriptFunctions
     {
-        [LuaFunction("RconPrint")]
+        [LuaMember("RconPrint")]
         static void RconPrint_f(string str)
         {
             RconPrint.Print("{0}", str);
         }
 
-        [LuaFunction("RconLog")]
+        [LuaMember("RconLog")]
         static void RconLog_f(LuaTable table)
         {
-            var packer = (Func<LuaTable, string>)ScriptEnvironment.CurrentEnvironment.LuaState.GetFunction(typeof(Func<LuaTable, string>), "json.encode");
+            var luaEnvironment = ScriptEnvironment.CurrentEnvironment.LuaEnvironment;
+            /*var packer = (Func<LuaTable, string>)((LuaTable)luaEnvironment["json"])["encode"];
+
             var str = packer(table);
 
             var rconLog = ScriptEnvironment.CurrentEnvironment.Resource.Manager.RconLog;
@@ -30,7 +31,7 @@ namespace CitizenMP.Server.Resources
             if (rconLog != null)
             {
                 rconLog.Append(str);
-            }
+            }*/
         }
     }
 }

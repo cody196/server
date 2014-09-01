@@ -12,25 +12,25 @@ local NUMBER_INTEGRAL = false
 if not jit then
     -- Lua 5.1 & 5.2
     local loadstring = loadstring or load
-    local luac = string.dump(loadstring "a = 1")
-    local header = { luac:sub(1, 12):byte(1, 12) }
-    SIZEOF_NUMBER = header[11]
-    NUMBER_INTEGRAL = 1 == header[12]
+    --local luac = string.dump(loadstring "a = 1")
+    --local header = { luac:sub(1, 12):byte(1, 12) }
+    SIZEOF_NUMBER = 4
+    NUMBER_INTEGRAL = 1 == 0
 end
 
-local assert = assert
+--[[local assert = assert
 local error = error
 local pairs = pairs
 local pcall = pcall
 local setmetatable = setmetatable
 local tostring = tostring
-local type = type
-local char = require'string'.char
-local floor = require'math'.floor
-local frexp = require'math'.frexp
-local ldexp = require'math'.ldexp
-local huge = require'math'.huge
-local tconcat = require'table'.concat
+local type = type]]
+local char = string.char
+local floor = function(a) return a end--math.floor
+--local frexp = math.frexp
+--local ldexp = math.ldexp
+local huge = math.huge
+local tconcat = table.concat
 
 --[[ debug only
 local format = require'string'.format
@@ -60,9 +60,10 @@ local function checktype (caller, narg, arg, tname)
     end
 end
 
-local packers = setmetatable({}, {
+--[[local packers = setmetatable({}, {
     __index = function (t, k) error("pack '" .. k .. "' is unimplemented") end
-})
+})]]
+local packers = {}
 m.packers = packers
 
 packers['nil'] = function (buffer)
@@ -83,13 +84,13 @@ packers['string_compat'] = function (buffer, str)
         buffer[#buffer+1] = char(0xA0 + n)      -- fixstr
     elseif n <= 0xFFFF then
         buffer[#buffer+1] = char(0xDA,          -- str16
-                                 floor(n / 0x100),
+                                 (n / 0x100),
                                  n % 0x100)
     elseif n <= 0xFFFFFFFF then
         buffer[#buffer+1] = char(0xDB,          -- str32
-                                 floor(n / 0x1000000),
-                                 floor(n / 0x10000) % 0x100,
-                                 floor(n / 0x100) % 0x100,
+                                 (n / 0x1000000),
+                                 (n / 0x10000) % 0x100,
+                                 (n / 0x100) % 0x100,
                                  n % 0x100)
     else
         error"overflow in pack 'string_compat'"
@@ -106,13 +107,13 @@ packers['_string'] = function (buffer, str)
                                  n)
     elseif n <= 0xFFFF then
         buffer[#buffer+1] = char(0xDA,          -- str16
-                                 floor(n / 0x100),
+                                 (n / 0x100),
                                  n % 0x100)
     elseif n <= 0xFFFFFFFF then
         buffer[#buffer+1] = char(0xDB,          -- str32
-                                 floor(n / 0x1000000),
-                                 floor(n / 0x10000) % 0x100,
-                                 floor(n / 0x100) % 0x100,
+                                 (n / 0x1000000),
+                                 (n / 0x10000) % 0x100,
+                                 (n / 0x100) % 0x100,
                                  n % 0x100)
     else
         error"overflow in pack 'string'"
@@ -127,13 +128,13 @@ packers['binary'] = function (buffer, str)
                                  n)
     elseif n <= 0xFFFF then
         buffer[#buffer+1] = char(0xC5,          -- bin16
-                                 floor(n / 0x100),
+                                 (n / 0x100),
                                  n % 0x100)
     elseif n <= 0xFFFFFFFF then
         buffer[#buffer+1] = char(0xC6,          -- bin32
-                                 floor(n / 0x1000000),
-                                 floor(n / 0x10000) % 0x100,
-                                 floor(n / 0x100) % 0x100,
+                                 (n / 0x1000000),
+                                 (n / 0x10000) % 0x100,
+                                 (n / 0x100) % 0x100,
                                  n % 0x100)
     else
         error"overflow in pack 'binary'"
@@ -159,13 +160,13 @@ packers['map'] = function (buffer, tbl, n)
         buffer[#buffer+1] = char(0x80 + n)      -- fixmap
     elseif n <= 0xFFFF then
         buffer[#buffer+1] = char(0xDE,          -- map16
-                                 floor(n / 0x100),
+                                 (n / 0x100),
                                  n % 0x100)
     elseif n <= 0xFFFFFFFF then
         buffer[#buffer+1] = char(0xDF,          -- map32
-                                 floor(n / 0x1000000),
-                                 floor(n / 0x10000) % 0x100,
-                                 floor(n / 0x100) % 0x100,
+                                 (n / 0x1000000),
+                                 (n / 0x10000) % 0x100,
+                                 (n / 0x100) % 0x100,
                                  n % 0x100)
     else
         error"overflow in pack 'map'"
@@ -181,13 +182,13 @@ packers['array'] = function (buffer, tbl, n)
         buffer[#buffer+1] = char(0x90 + n)      -- fixarray
     elseif n <= 0xFFFF then
         buffer[#buffer+1] = char(0xDC,          -- array16
-                                 floor(n / 0x100),
+                                 (n / 0x100),
                                  n % 0x100)
     elseif n <= 0xFFFFFFFF then
         buffer[#buffer+1] = char(0xDD,          -- array32
-                                 floor(n / 0x1000000),
-                                 floor(n / 0x10000) % 0x100,
-                                 floor(n / 0x100) % 0x100,
+                                 (n / 0x1000000),
+                                 (n / 0x10000) % 0x100,
+                                 (n / 0x100) % 0x100,
                                  n % 0x100)
     else
         error"overflow in pack 'array'"
@@ -267,23 +268,23 @@ packers['unsigned'] = function (buffer, n)
                                      n)
         elseif n <= 0xFFFF then
             buffer[#buffer+1] = char(0xCD,      -- uint16
-                                     floor(n / 0x100),
+                                     (n / 0x100),
                                      n % 0x100)
         elseif n <= 0xFFFFFFFF then
             buffer[#buffer+1] = char(0xCE,      -- uint32
-                                     floor(n / 0x1000000),
-                                     floor(n / 0x10000) % 0x100,
-                                     floor(n / 0x100) % 0x100,
+                                     (n / 0x1000000),
+                                     (n / 0x10000) % 0x100,
+                                     (n / 0x100) % 0x100,
                                      n % 0x100)
         else
             buffer[#buffer+1] = char(0xCF,      -- uint64
                                      0,         -- only 53 bits from double
-                                     floor(n / 0x1000000000000) % 0x100,
-                                     floor(n / 0x10000000000) % 0x100,
-                                     floor(n / 0x100000000) % 0x100,
-                                     floor(n / 0x1000000) % 0x100,
-                                     floor(n / 0x10000) % 0x100,
-                                     floor(n / 0x100) % 0x100,
+                                     (n / 0x1000000000000) % 0x100,
+                                     (n / 0x10000000000) % 0x100,
+                                     (n / 0x100000000) % 0x100,
+                                     (n / 0x1000000) % 0x100,
+                                     (n / 0x10000) % 0x100,
+                                     (n / 0x100) % 0x100,
                                      n % 0x100)
         end
     else
@@ -295,24 +296,24 @@ packers['unsigned'] = function (buffer, n)
         elseif n >= -0x8000 then
             n = 0x10000 + n
             buffer[#buffer+1] = char(0xD1,      -- int16
-                                     floor(n / 0x100),
+                                     (n / 0x100),
                                      n % 0x100)
         elseif n >= -0x80000000 then
             n = 0x100000000 + n
             buffer[#buffer+1] = char(0xD2,      -- int32
-                                     floor(n / 0x1000000),
-                                     floor(n / 0x10000) % 0x100,
-                                     floor(n / 0x100) % 0x100,
+                                     (n / 0x1000000),
+                                     (n / 0x10000) % 0x100,
+                                     (n / 0x100) % 0x100,
                                      n % 0x100)
         else
             buffer[#buffer+1] = char(0xD3,      -- int64
                                      0xFF,      -- only 53 bits from double
-                                     floor(n / 0x1000000000000) % 0x100,
-                                     floor(n / 0x10000000000) % 0x100,
-                                     floor(n / 0x100000000) % 0x100,
-                                     floor(n / 0x1000000) % 0x100,
-                                     floor(n / 0x10000) % 0x100,
-                                     floor(n / 0x100) % 0x100,
+                                     (n / 0x1000000000000) % 0x100,
+                                     (n / 0x10000000000) % 0x100,
+                                     (n / 0x100000000) % 0x100,
+                                     (n / 0x1000000) % 0x100,
+                                     (n / 0x10000) % 0x100,
+                                     (n / 0x100) % 0x100,
                                      n % 0x100)
         end
     end
@@ -324,23 +325,23 @@ packers['signed'] = function (buffer, n)
             buffer[#buffer+1] = char(n)         -- fixnum_pos
         elseif n <= 0x7FFF then
             buffer[#buffer+1] = char(0xD1,      -- int16
-                                     floor(n / 0x100),
+                                     (n / 0x100),
                                      n % 0x100)
         elseif n <= 0x7FFFFFFF then
             buffer[#buffer+1] = char(0xD2,      -- int32
-                                     floor(n / 0x1000000),
-                                     floor(n / 0x10000) % 0x100,
-                                     floor(n / 0x100) % 0x100,
+                                     (n / 0x1000000),
+                                     (n / 0x10000) % 0x100,
+                                     (n / 0x100) % 0x100,
                                      n % 0x100)
         else
             buffer[#buffer+1] = char(0xD3,      -- int64
                                      0,         -- only 53 bits from double
-                                     floor(n / 0x1000000000000) % 0x100,
-                                     floor(n / 0x10000000000) % 0x100,
-                                     floor(n / 0x100000000) % 0x100,
-                                     floor(n / 0x1000000) % 0x100,
-                                     floor(n / 0x10000) % 0x100,
-                                     floor(n / 0x100) % 0x100,
+                                     (n / 0x1000000000000) % 0x100,
+                                     (n / 0x10000000000) % 0x100,
+                                     (n / 0x100000000) % 0x100,
+                                     (n / 0x1000000) % 0x100,
+                                     (n / 0x10000) % 0x100,
+                                     (n / 0x100) % 0x100,
                                      n % 0x100)
         end
     else
@@ -352,24 +353,24 @@ packers['signed'] = function (buffer, n)
         elseif n >= -0x8000 then
             n = 0x10000 + n
             buffer[#buffer+1] = char(0xD1,      -- int16
-                                     floor(n / 0x100),
+                                     (n / 0x100),
                                      n % 0x100)
         elseif n >= -0x80000000 then
             n = 0x100000000 + n
             buffer[#buffer+1] = char(0xD2,      -- int32
-                                     floor(n / 0x1000000),
-                                     floor(n / 0x10000) % 0x100,
-                                     floor(n / 0x100) % 0x100,
+                                     (n / 0x1000000),
+                                     (n / 0x10000) % 0x100,
+                                     (n / 0x100) % 0x100,
                                      n % 0x100)
         else
             buffer[#buffer+1] = char(0xD3,      -- int64
                                      0xFF,      -- only 53 bits from double
-                                     floor(n / 0x1000000000000) % 0x100,
-                                     floor(n / 0x10000000000) % 0x100,
-                                     floor(n / 0x100000000) % 0x100,
-                                     floor(n / 0x1000000) % 0x100,
-                                     floor(n / 0x10000) % 0x100,
-                                     floor(n / 0x100) % 0x100,
+                                     (n / 0x1000000000000) % 0x100,
+                                     (n / 0x10000000000) % 0x100,
+                                     (n / 0x100000000) % 0x100,
+                                     (n / 0x1000000) % 0x100,
+                                     (n / 0x10000) % 0x100,
+                                     (n / 0x100) % 0x100,
                                      n % 0x100)
         end
     end
@@ -411,11 +412,17 @@ packers['float'] = function (buffer, n)
         expo = expo + 0x7E
         mant = (mant * 2.0 - 1.0) * ldexp(0.5, 24)
         buffer[#buffer+1] = char(0xCA,
-                                 sign + floor(expo / 0x2),
-                                 (expo % 0x2) * 0x80 + floor(mant / 0x10000),
-                                 floor(mant / 0x100) % 0x100,
+                                 sign + (expo / 0x2),
+                                 (expo % 0x2) * 0x80 + (mant / 0x10000),
+                                 (mant / 0x100) % 0x100,
                                  mant % 0x100)
     end
+end
+
+local mf = function(f)
+    local a = math.floor(f)
+
+    return a
 end
 
 packers['double'] = function (buffer, n)
@@ -425,6 +432,7 @@ packers['double'] = function (buffer, n)
         n = -n
     end
     local mant, expo = frexp(n)
+
     if mant ~= mant then
         buffer[#buffer+1] = char(0xCB,  -- nan
                                  0xFF, 0xF8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
@@ -442,14 +450,15 @@ packers['double'] = function (buffer, n)
     else
         expo = expo + 0x3FE
         mant = (mant * 2.0 - 1.0) * ldexp(0.5, 53)
+
         buffer[#buffer+1] = char(0xCB,
-                                 sign + floor(expo / 0x10),
-                                 (expo % 0x10) * 0x10 + floor(mant / 0x1000000000000),
-                                 floor(mant / 0x10000000000) % 0x100,
-                                 floor(mant / 0x100000000) % 0x100,
-                                 floor(mant / 0x1000000) % 0x100,
-                                 floor(mant / 0x10000) % 0x100,
-                                 floor(mant / 0x100) % 0x100,
+                                 sign + s,
+                                 ff,
+                                 f2,
+                                 f3,
+                                 f4,
+                                 f5,
+                                 f6,
                                  mant % 0x100)
     end
 end
@@ -459,7 +468,7 @@ local set_number = function (number)
         packers['number'] = packers['signed']
     elseif number == 'float' then
         packers['number'] = function (buffer, n)
-            if floor(n) ~= n or n ~= n or n > 3.40282347e+38 or n < -3.40282347e+38 then
+            if math.floor(n) ~= n or n ~= n or n > 3.40282347e+38 or n < -3.40282347e+38 then
                 return packers['float'](buffer, n)
             else
                 return packers['integer'](buffer, n)
@@ -467,7 +476,7 @@ local set_number = function (number)
         end
     elseif number == 'double' then
         packers['number'] = function (buffer, n)
-            if floor(n) ~= n or n ~= n or n == huge or n == -huge then
+            if math.floor(n) ~= n or n ~= n or n == huge or n == -huge then
                 return packers['double'](buffer, n)
             else
                 return packers['integer'](buffer, n)
@@ -498,14 +507,14 @@ packers['ext'] = function (buffer, tag, data)
                                  tag < 0 and tag + 0x100 or tag)
     elseif n <= 0xFFFF then
         buffer[#buffer+1] = char(0xC8,          -- ext16
-                                 floor(n / 0x100),
+                                 (n / 0x100),
                                  n % 0x100,
                                  tag < 0 and tag + 0x100 or tag)
     elseif n <= 0xFFFFFFFF then
         buffer[#buffer+1] = char(0xC9,          -- ext&32
-                                 floor(n / 0x1000000),
-                                 floor(n / 0x10000) % 0x100,
-                                 floor(n / 0x100) % 0x100,
+                                 (n / 0x1000000),
+                                 (n / 0x10000) % 0x100,
+                                 (n / 0x100) % 0x100,
                                  n % 0x100,
                                  tag < 0 and tag + 0x100 or tag)
     else
@@ -516,8 +525,11 @@ end
 
 function m.pack (data)
     local buffer = {}
-    packers[type(data)](buffer, data)
-    return tconcat(buffer)
+
+    local packer = packers[type(data)]
+    packer(buffer, data)
+
+    return table.concat(buffer)
 end
 
 
@@ -573,7 +585,15 @@ end })
 m.types_map = types_map
 
 local unpackers = setmetatable({}, {
-    __index = function (t, k) error("unpack '" .. k .. "' is unimplemented") end
+    __index = function (t, k)
+        local g = rawget(t, k)
+
+        if g then
+            return g
+        end
+
+        error("unpack '" .. k .. "' is unimplemented")
+    end
 })
 m.unpackers = unpackers
 
@@ -591,7 +611,11 @@ local function unpack_map (c, n)
     local decode = unpackers['any']
     for i = 1, n do
         local k = decode(c)
-        t[k] = decode(c)
+        local v = decode(c)
+
+        if k then
+            t[k] = v
+        end
     end
     return t
 end
@@ -627,7 +651,7 @@ unpackers['float'] = function (c)
     end
     local b1, b2, b3, b4 = s:sub(i, i+3):byte(1, 4)
     local sign = b1 > 0x7F
-    local expo = (b1 % 0x80) * 0x2 + floor(b2 / 0x80)
+    local expo = (b1 % 0x80) * 0x2 + (b2 / 0x80)
     local mant = ((b2 % 0x80) * 0x100 + b3) * 0x100 + b4
     if sign then
         sign = -1
@@ -657,29 +681,13 @@ unpackers['double'] = function (c)
         s, i, j = c.s, c.i, c.j
     end
     local b1, b2, b3, b4, b5, b6, b7, b8 = s:sub(i, i+7):byte(1, 8)
-    local sign = b1 > 0x7F
-    local expo = (b1 % 0x80) * 0x10 + floor(b2 / 0x10)
-    local mant = ((((((b2 % 0x10) * 0x100 + b3) * 0x100 + b4) * 0x100 + b5) * 0x100 + b6) * 0x100 + b7) * 0x100 + b8
-    if sign then
-        sign = -1
-    else
-        sign = 1
-    end
-    local n
-    if mant == 0 and expo == 0 then
-        n = sign * 0.0
-    elseif expo == 0x7FF then
-        if mant == 0 then
-            n = sign * huge
-        else
-            n = 0.0/0.0
-        end
-    else
-        n = sign * ldexp(1.0 + mant / 0x10000000000000, expo - 0x3FF)
-    end
+
+    local arr = clr.System.Byte[]{ b8, b7, b6, b5, b4, b3, b2, b1 }
+
     c.i = i+8
-    return n
-end
+
+    return clr.System.BitConverter.ToDouble(arr, 0)
+    end
 
 unpackers['fixnum_pos'] = function (c, val)
     return val
@@ -1133,14 +1141,14 @@ m.packers['function'] = function(buffer, func)
     local ref, inst, res = GetFuncRef(func)
 
     m.packers['ext'](buffer, EXT_CLOSURE, char(
-        floor(ref / 0x1000000),
-        floor(ref / 0x10000) % 0x100,
-        floor(ref / 0x100) % 0x100,
+        (ref / 0x1000000),
+        (ref / 0x10000) % 0x100,
+        (ref / 0x100) % 0x100,
         ref % 0x100) ..
         char(
-            floor(inst / 0x1000000),
-            floor(inst / 0x10000) % 0x100,
-            floor(inst / 0x100) % 0x100,
+            (inst / 0x1000000),
+            (inst / 0x10000) % 0x100,
+            (inst / 0x100) % 0x100,
             inst % 0x100)
         .. res)
 end
@@ -1149,9 +1157,9 @@ m.packers['userdata'] = function(buffer, udata)
     --[[local ref, res = GetFuncRefByData(udata)
 
     m.packers['ext'](buffer, EXT_CLOSURE, char(
-        floor(ref / 0x1000000),
-        floor(ref / 0x10000) % 0x100,
-        floor(ref / 0x100) % 0x100,
+        (ref / 0x1000000),
+        (ref / 0x10000) % 0x100,
+        (ref / 0x100) % 0x100,
         ref % 0x100) .. res)]]
 
     error('unsupported pending NLua fixes')

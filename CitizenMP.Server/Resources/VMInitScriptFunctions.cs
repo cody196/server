@@ -5,46 +5,44 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using NLua;
-using LuaL = KeraLua.Lua;
+using Neo.IronLua;
 
 namespace CitizenMP.Server.Resources
 {
     class VMInitScriptFunctions
     {
-        [LuaFunction("SetResourceInfo")]
+        [LuaMember("SetResourceInfo")]
         public static void SetResourceInfo_f(string key, string value)
         {
             ScriptEnvironment.InvokingEnvironment.Resource.Info[key] = value;
         }
 
-        [LuaFunction("AddClientScript")]
+        [LuaMember("AddClientScript")]
         public static void AddClientScript_f(string script)
         {
             ScriptEnvironment.InvokingEnvironment.Resource.Scripts.Add(script);
         }
 
-        [LuaFunction("AddServerScript")]
+        [LuaMember("AddServerScript")]
         public static void AddServerScript_f(string script)
         {
-            var env = ScriptEnvironment.CurrentEnvironment;
-            env.LuaState.DoFile(Path.Combine(env.Resource.Path, script));
+            ScriptEnvironment.CurrentEnvironment.AddServerScript(script);
         }
 
-        [LuaFunction("AddAuxFile")]
+        [LuaMember("AddAuxFile")]
         public static void AddAuxFile_f(string file)
         {
             ScriptEnvironment.InvokingEnvironment.Resource.AuxFiles.Add(file);
         }
 
-        [LuaFunction("AddResourceDependency")]
+        [LuaMember("AddResourceDependency")]
         public static void AddResourceDependency_f(string resource)
         {
             ScriptEnvironment.InvokingEnvironment.Resource.Dependencies.Add(resource);
         }
 
-        [LuaFunction("RegisterInitHandler")]
-        public static void RegisterInitHandler_f(LuaFunction function)
+        [LuaMember("RegisterInitHandler")]
+        public static void RegisterInitHandler_f(Delegate function)
         {
             ScriptEnvironment.CurrentEnvironment.InitHandler = function;
         }

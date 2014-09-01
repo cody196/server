@@ -100,6 +100,11 @@ namespace CitizenMP.Server.Resources
                 {
                     if (onlyThisResource == null || onlyThisResource == basename)
                     {
+                        if (onlyThisResource == null)
+                        {
+                            Console.Write(".");
+                        }
+
                         AddResource(basename, dir);
                     }
                 }
@@ -137,22 +142,22 @@ namespace CitizenMP.Server.Resources
             return TriggerEvent(eventName, sb.ToString(), source);
         }
 
+        [ThreadStatic]
         private Stack<bool> m_eventCancelationState = new Stack<bool>();
+
+        [ThreadStatic]
         private bool m_eventCanceled;
 
         public bool TriggerEvent(string eventName, string argsSerialized, int source)
         {
-            lock (m_eventCancelationState)
+            m_eventCancelationState.Push(false);
+
+            foreach (var resource in m_resources)
             {
-                m_eventCancelationState.Push(false);
-
-                foreach (var resource in m_resources)
-                {
-                    resource.Value.TriggerEvent(eventName, argsSerialized, source);
-                }
-
-                m_eventCanceled = m_eventCancelationState.Pop();
+                resource.Value.TriggerEvent(eventName, argsSerialized, source);
             }
+
+            m_eventCanceled = m_eventCancelationState.Pop();
 
             return !m_eventCanceled;
         }

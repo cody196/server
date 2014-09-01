@@ -62,7 +62,7 @@ AddEventHandler('onResourceStarting', function(resource)
     end
 end)
 
-math.randomseed(os.time())
+math.randomseed(GetInstanceId())
 
 local currentGameType = nil
 local currentMap = nil
@@ -235,7 +235,7 @@ function getCurrentMap()
 end
 
 function changeGameType(gameType)
-    if currentMap and not doesMapSupportGameType(gameType, map) then
+    if currentMap and not doesMapSupportGameType(gameType, currentMap) then
         StopResource(currentMap)
     end
 

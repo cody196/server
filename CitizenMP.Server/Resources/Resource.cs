@@ -239,6 +239,10 @@ namespace CitizenMP.Server.Resources
                 dependencyResource.RemoveDependant(Name);
             }
 
+            // remove the watcher
+            m_watcher.Dispose();
+            m_watcher = null;
+
             // dispose of the script environment
             m_scriptEnvironment.Dispose();
             m_scriptEnvironment = null;
@@ -262,7 +266,7 @@ namespace CitizenMP.Server.Resources
 
         public bool HasRef(int reference, uint instance)
         {
-            return (m_scriptEnvironment != null && m_scriptEnvironment.InstanceID == instance);
+            return (m_scriptEnvironment != null && m_scriptEnvironment.HasRef(reference) && m_scriptEnvironment.InstanceID == instance);
         }
 
         public void Tick()
@@ -273,9 +277,14 @@ namespace CitizenMP.Server.Resources
             }
         }
 
-        public string CallRef(int luaRef, string argsSerialized)
+        public Delegate GetRef(int reference)
         {
-            return m_scriptEnvironment.CallExport(luaRef, argsSerialized);
+            return m_scriptEnvironment.GetRef(reference);
+        }
+
+        public string CallRef(Delegate method, string argsSerialized)
+        {
+            return m_scriptEnvironment.CallExport(method, argsSerialized);
         }
 
         public void RemoveRef(int luaRef)

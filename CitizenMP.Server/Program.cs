@@ -85,7 +85,9 @@ namespace CitizenMP.Server
             }
 
             // scan resources
+            Console.Write("Parsing resources: ");
             resManager.ScanResources("resources/");
+            Console.WriteLine();
 
             // start the game server
             gameServer.Start();

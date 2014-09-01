@@ -1,4 +1,4 @@
-math.randomseed(os.time())
+math.randomseed(GetInstanceId())
 
 local randomBase = math.random()
 

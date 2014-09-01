@@ -2,24 +2,22 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using KeraLua;
-using NLua;
-
-using LuaL = KeraLua.Lua;
+using Neo.IronLua;
 
 namespace CitizenMP.Server.Resources
 {
     class ScriptEnvironment : IDisposable
     {
         private Resource m_resource;
-        private LuaState m_luaNative;
-        private NLua.Lua m_luaState;
+        private LuaGlobal m_luaEnvironment;
 
+        private static Lua ms_luaState;
         private static List<KeyValuePair<string, MethodInfo>> ms_luaFunctions = new List<KeyValuePair<string, MethodInfo>>();
-        private static List<KeyValuePair<string, LuaNativeFunction>> ms_nativeFunctions = new List<KeyValuePair<string, LuaNativeFunction>>();
+        //private static List<KeyValuePair<string, LuaNativeFunction>> ms_nativeFunctions = new List<KeyValuePair<string, LuaNativeFunction>>();
 
         [ThreadStatic]
         private static ScriptEnvironment ms_currentEnvironment;
@@ -80,21 +78,29 @@ namespace CitizenMP.Server.Resources
             }
         }
 
-        public NLua.Lua LuaState
+        public Lua LuaState
         {
             get
             {
-                return m_luaState;
+                return ms_luaState;
             }
         }
 
-        public LuaState NativeLuaState
+        public LuaGlobal LuaEnvironment
+        {
+            get
+            {
+                return m_luaEnvironment;
+            }
+        }
+
+        /*public LuaState NativeLuaState
         {
             get
             {
                 return m_luaNative;
             }
-        }
+        }*/
 
         private static Random ms_instanceGen;
 
@@ -110,26 +116,18 @@ namespace CitizenMP.Server.Resources
 
                 foreach (var method in methods)
                 {
-                    var luaAttribute = method.GetCustomAttribute<LuaFunctionAttribute>();
+                    var luaAttribute = method.GetCustomAttribute<LuaMemberAttribute>();
 
                     if (luaAttribute != null)
                     {
-                        var parameters = method.GetParameters();
-
-                        if (parameters.Length == 1 && parameters[0].ParameterType == typeof(LuaState))
-                        {
-                            LuaNativeFunction function = (LuaNativeFunction)method.CreateDelegate(typeof(LuaNativeFunction));
-                            ms_nativeFunctions.Add(new KeyValuePair<string, LuaNativeFunction>(luaAttribute.FunctionName, function));
-                        }
-                        else
-                        {
-                            ms_luaFunctions.Add(new KeyValuePair<string, MethodInfo>(luaAttribute.FunctionName, method));
-                        }
+                        ms_luaFunctions.Add(new KeyValuePair<string, MethodInfo>(luaAttribute.Name, method));
                     }
                 }
             }
 
             ms_instanceGen = new Random();
+
+            Extensions.Initialize();
         }
 
         public ScriptEnvironment(Resource resource)
@@ -139,13 +137,49 @@ namespace CitizenMP.Server.Resources
             InstanceID = (uint)ms_instanceGen.Next();
         }
 
+        private static LuaChunk[] ms_initChunks;
+
+        private List<LuaChunk> m_curChunks = new List<LuaChunk>();
+
         public bool Create()
         {
             ScriptEnvironment lastEnvironment = null, oldLastEnvironment = null;
 
             try
             {
-                m_luaNative = LuaL.LuaLNewState();
+                if (ms_luaState == null)
+                {
+                    ms_luaState = new Lua();
+
+                    ms_initChunks = new []
+                    {
+                        ms_luaState.CompileChunk("system/MessagePack.lua", null),
+                        ms_luaState.CompileChunk("system/dkjson.lua", null),
+                        ms_luaState.CompileChunk("system/resource_init.lua", null)
+                    };
+                }
+
+                m_luaEnvironment = ms_luaState.CreateEnvironment();
+
+                foreach (var func in ms_luaFunctions)
+                {
+                    m_luaEnvironment[func.Key] = Delegate.CreateDelegate
+                    (
+                        Expression.GetDelegateType
+                        (
+                            func.Value.GetParameters()
+                                .Select(p => p.ParameterType)
+                                .Concat(new Type[] { func.Value.ReturnType })
+                                .ToArray()
+                        ),
+                        null,
+                        func.Value
+                    );
+                }
+
+                InitHandler = null;
+
+                /*m_luaNative = LuaL.LuaLNewState();
                 LuaL.LuaLOpenLibs(m_luaNative);
 
                 LuaLib.LuaNewTable(m_luaNative);
@@ -153,9 +187,9 @@ namespace CitizenMP.Server.Resources
 
                 InitHandler = null;
 
-                m_luaState = new NLua.Lua(m_luaNative);
+                m_luaState = new NLua.Lua(m_luaNative);*/
 
-                lock (m_luaState)
+                lock (m_luaEnvironment)
                 {
                     lastEnvironment = ms_currentEnvironment;
                     ms_currentEnvironment = this;
@@ -163,22 +197,11 @@ namespace CitizenMP.Server.Resources
                     oldLastEnvironment = LastEnvironment;
                     LastEnvironment = lastEnvironment;
 
-                    // register our global functions
-                    foreach (var func in ms_luaFunctions)
-                    {
-                        m_luaState.RegisterFunction(func.Key, func.Value);
-                    }
-
-                    foreach (var func in ms_nativeFunctions)
-                    {
-                        LuaLib.LuaPushStdCallCFunction(m_luaNative, func.Value);
-                        LuaLib.LuaSetGlobal(m_luaNative, func.Key);
-                    }
-
                     // load global data files
-                    m_luaState.DoFile("system/resource_init.lua");
-                    m_luaState.DoFile("system/MessagePack.lua");
-                    m_luaState.DoFile("system/dkjson.lua");
+                    foreach (var chunk in ms_initChunks)
+                    {
+                        m_luaEnvironment.DoChunk(chunk);
+                    }
                 }
 
                 return true;
@@ -208,11 +231,53 @@ namespace CitizenMP.Server.Resources
                 throw new InvalidOperationException("Tried to dispose the current script environment");
             }
 
-            m_luaState.Close();
-            m_luaState.Dispose();
+            foreach (var chunk in m_curChunks)
+            {
+                chunk.Dispose();
+            }
+
+            var field = ms_luaState.GetType().GetField("setMemberBinder", BindingFlags.NonPublic | BindingFlags.Instance);
+            var binders = (Dictionary<string, System.Runtime.CompilerServices.CallSiteBinder>)field.GetValue(ms_luaState);
+
+            Console.WriteLine("--- BOUNDARY ---");
+
+            foreach (var binder in binders)
+            {
+                var fields = binder.Value.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+
+                if (fields.Length < 2)
+                {
+                    continue;
+                }
+
+                field = fields[1];
+                var cache = (Dictionary<Type, Object>)field.GetValue(binder.Value);
+
+                if (cache == null)
+                {
+                    continue;
+                }
+
+                foreach (var val in cache)
+                {
+                    field = val.Value.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance).FirstOrDefault(a => a.Name == "_rules");
+
+                    if (field != null)
+                    {
+                        var rules = field.GetValue(val.Value);
+
+                        var prop = rules.GetType().GetProperty("Length");
+                        Console.WriteLine("{0}: {1}", binder.Key, prop.GetValue(rules));
+                    }
+                }
+            }
+
+            m_curChunks.Clear();
+
+            GC.Collect();
         }
 
-        public LuaFunction InitHandler { get; set; }
+        public Delegate InitHandler { get; set; }
 
         public bool LoadScripts()
         {
@@ -229,9 +294,11 @@ namespace CitizenMP.Server.Resources
                 // load scripts defined in this resource
                 foreach (var script in m_resource.ServerScripts)
                 {
-                    lock (m_luaState)
+                    lock (m_luaEnvironment)
                     {
-                        m_luaState.DoFile(Path.Combine(m_resource.Path, script));
+                        var chunk = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, script), null);
+                        m_luaEnvironment.DoChunk(chunk);
+                        m_curChunks.Add(chunk);
                     }
                 }
 
@@ -255,6 +322,13 @@ namespace CitizenMP.Server.Resources
             return false;
         }
 
+        private List<string> m_serverScripts = new List<string>();
+
+        public void AddServerScript(string script)
+        {
+            m_serverScripts.Add(script);
+        }
+
         public bool DoInitFile(bool preParse)
         {
             ScriptEnvironment lastEnvironment = null, oldLastEnvironment = null;
@@ -267,11 +341,24 @@ namespace CitizenMP.Server.Resources
                 oldLastEnvironment = LastEnvironment;
                 LastEnvironment = lastEnvironment;
 
-                lock (m_luaState)
+                lock (m_luaEnvironment)
                 {
-                    var initFunction = m_luaState.LoadFile(Path.Combine(m_resource.Path, "__resource.lua"));
+                    var initFunction = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, "__resource.lua"), null);
+                    var initDelegate = new Func<LuaResult>(() => m_luaEnvironment.DoChunk(initFunction));
 
-                    InitHandler.Call(initFunction, preParse);
+                    InitHandler.DynamicInvoke(initDelegate, preParse);
+
+                    initFunction.Dispose();
+                }
+
+                if (!preParse)
+                {
+                    foreach (var script in m_serverScripts)
+                    {
+                        var chunk = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, script), null);
+                        m_luaEnvironment.DoChunk(chunk);
+                        m_curChunks.Add(chunk);
+                    }
                 }
 
                 return true;
@@ -296,18 +383,16 @@ namespace CitizenMP.Server.Resources
 
         public void TriggerEvent(string eventName, string argsSerialized, int source)
         {
-            List<LuaFunction> eventHandlers;
+            List<Delegate> eventHandlers;
 
             if (!m_eventHandlers.TryGetValue(eventName, out eventHandlers))
             {
                 return;
             }
 
-            lock (m_luaState)
+            lock (m_luaEnvironment)
             {
-                var L = m_luaNative;
-                LuaL.LuaPushNumber(L, source);
-                LuaL.LuaNetSetGlobal(L, "source");
+                m_luaEnvironment["source"] = source;
 
                 var lastEnvironment = ms_currentEnvironment;
                 ms_currentEnvironment = this;
@@ -315,15 +400,18 @@ namespace CitizenMP.Server.Resources
                 var oldLastEnvironment = LastEnvironment;
                 LastEnvironment = lastEnvironment;
 
-                var unpacker = (Func<string, LuaTable>)m_luaState.GetFunction(typeof(Func<string, LuaTable>), "msgpack.unpack");
-                var table = unpacker(argsSerialized);
+                //var unpacker = (Func<object, LuaResult>)((LuaTable)m_luaEnvironment["msgpack"])["unpack"];
+                //var table = unpacker(argsSerialized);
 
-                var args = new object[table.Values.Count];
+                dynamic luaEnvironment = m_luaEnvironment;
+                LuaTable table = luaEnvironment.msgpack.unpack(argsSerialized);
+
+                var args = new object[table.Length];
                 var i = 0;
 
-                foreach (var value in table.Values)
+                foreach (var value in table)
                 {
-                    args[i] = value;
+                    args[i] = value.Value;
                     i++;
                 }
 
@@ -331,9 +419,9 @@ namespace CitizenMP.Server.Resources
                 {
                     try
                     {
-                        handler.Call(args);
+                        handler.DynamicInvoke(args.Take(handler.Method.GetParameters().Length - 1).ToArray());
                     }
-                    catch (NLua.Exceptions.LuaException e)
+                    catch (Exception e)
                     {
                         this.Log().Error(() => "Error executing event handler for event " + eventName + " in resource " + m_resource.Name + ": " + e.Message, e);
 
@@ -353,27 +441,25 @@ namespace CitizenMP.Server.Resources
                     }
                 }
 
-                foreach (var value in table.Values)
-                {
-                    if (value is IDisposable)
-                    {
-                        ((IDisposable)value).Dispose();
-                    }
-                }
-
-                table.Dispose();
-
                 ms_currentEnvironment = lastEnvironment;
                 LastEnvironment = oldLastEnvironment;
             }
         }
 
-        public string CallExport(int luaRef, string argsSerialized)
-        {
-            lock (m_luaState)
-            {
-                var func = new LuaFunction(luaRef, m_luaState);
+        private int m_referenceNum;
+        private Dictionary<int, Delegate> m_luaReferences = new Dictionary<int, Delegate>();
 
+        public Delegate GetRef(int reference)
+        {
+            var func = m_luaReferences[reference];
+
+            return func;
+        }
+
+        public string CallExport(Delegate func, string argsSerialized)
+        {
+            lock (m_luaEnvironment)
+            {
                 var lastEnvironment = ms_currentEnvironment;
                 ms_currentEnvironment = this;
 
@@ -381,31 +467,20 @@ namespace CitizenMP.Server.Resources
                 LastEnvironment = lastEnvironment;
 
                 // unpack
-                var unpacker = (Func<string, LuaTable>)m_luaState.GetFunction(typeof(Func<string, LuaTable>), "msgpack.unpack");
+                var unpacker = (Func<string, LuaTable>)((LuaTable)m_luaEnvironment["msgpack"])["unpack"];
                 var table = unpacker(argsSerialized);
 
-                // make array
-                var args = new object[table.Values.Count];
+                var args = new object[table.Length];
                 var i = 0;
 
-                foreach (var value in table.Values)
+                foreach (var value in table)
                 {
-                    args[i] = value;
+                    args[i] = value.Value;
                     i++;
                 }
 
                 // invoke
-                var objects = func.Call(args);
-
-                foreach (var value in table.Values)
-                {
-                    if (value is IDisposable)
-                    {
-                        ((IDisposable)value).Dispose();
-                    }
-                }
-
-                table.Dispose();
+                var objects = (LuaResult)func.DynamicInvoke(args.Take(func.Method.GetParameters().Length - 1).ToArray());
 
                 // pack return values
                 var retstr = EventScriptFunctions.SerializeArguments(objects);
@@ -417,17 +492,28 @@ namespace CitizenMP.Server.Resources
             }
         }
 
+        public int AddRef(Delegate method)
+        {
+            int refNum = m_referenceNum++;
+
+            m_luaReferences.Add(refNum, method);
+
+            return refNum;
+        }
+
+        public bool HasRef(int reference)
+        {
+            return m_luaReferences.ContainsKey(reference);
+        }
+
         public void RemoveRef(int reference)
         {
-            lock (m_luaState)
-            {
-                LuaL.LuaLUnref(m_luaNative, -1001000, reference);
-            }
+            m_luaReferences.Remove(reference);
         }
 
         class ScriptTimer
         {
-            public LuaFunction Function { get; set; }
+            public Delegate Function { get; set; }
             public DateTime TickFrom { get; set; }
         }
 
@@ -442,7 +528,7 @@ namespace CitizenMP.Server.Resources
             {
                 if (now >= timer.TickFrom)
                 {
-                    lock (m_luaState)
+                    lock (m_luaEnvironment)
                     {
                         var lastEnvironment = ms_currentEnvironment;
                         ms_currentEnvironment = this;
@@ -450,7 +536,7 @@ namespace CitizenMP.Server.Resources
                         var oldLastEnvironment = LastEnvironment;
                         LastEnvironment = lastEnvironment;
 
-                        timer.Function.Call();
+                        timer.Function.DynamicInvoke();
 
                         ms_currentEnvironment = lastEnvironment;
                         LastEnvironment = oldLastEnvironment;
@@ -461,39 +547,45 @@ namespace CitizenMP.Server.Resources
             }
         }
 
-        public void SetTimeout(int milliseconds, LuaFunction callback)
+        public void SetTimeout(int milliseconds, Delegate callback)
         {
             var newSpan = DateTime.UtcNow + TimeSpan.FromMilliseconds(milliseconds);
 
             m_timers.Add(new ScriptTimer() { TickFrom = newSpan, Function = callback });
         }
 
-        [LuaFunction("SetTimeout")]
-        static void SetTimeout_f(int milliseconds, LuaFunction callback)
+        [LuaMember("SetTimeout")]
+        static void SetTimeout_f(int milliseconds, Delegate callback)
         {
             ms_currentEnvironment.SetTimeout(milliseconds, callback);
         }
         
-        [LuaFunction("AddEventHandler")]
-        static void AddEventHandler_f(string eventName, LuaFunction eventHandler)
+        [LuaMember("AddEventHandler")]
+        static void AddEventHandler_f(string eventName, Delegate eventHandler)
         {
             ms_currentEnvironment.AddEventHandler(eventName, eventHandler);
         }
 
-        private Dictionary<string, List<LuaFunction>> m_eventHandlers = new Dictionary<string, List<LuaFunction>>();
+        [LuaMember("GetInstanceId")]
+        static int GetInstanceId_f()
+        {
+            return (int)ms_currentEnvironment.InstanceID;
+        }
 
-        public void AddEventHandler(string eventName, LuaFunction eventHandler)
+        private Dictionary<string, List<Delegate>> m_eventHandlers = new Dictionary<string, List<Delegate>>();
+
+        public void AddEventHandler(string eventName, Delegate eventHandler)
         {
             if (!m_eventHandlers.ContainsKey(eventName))
             {
-                m_eventHandlers[eventName] = new List<LuaFunction>();
+                m_eventHandlers[eventName] = new List<Delegate>();
             }
 
             m_eventHandlers[eventName].Add(eventHandler);
         }
     }
 }
-
+/*
 namespace CitizenMP.Server
 {
     [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = true)]
@@ -507,3 +599,4 @@ namespace CitizenMP.Server
         public string FunctionName { get; private set; }
     }
 }
+*/

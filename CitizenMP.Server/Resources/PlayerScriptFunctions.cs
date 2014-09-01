@@ -4,40 +4,31 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using NLua;
-using LuaL = KeraLua.Lua;
+using Neo.IronLua;
 
 namespace CitizenMP.Server.Resources
 {
     class PlayerScriptFunctions
     {
-        [LuaFunction("GetPlayers")]
+        [LuaMember("GetPlayers")]
         static LuaTable GetPlayers()
         {
             var subClients = ClientInstances.Clients.Where(c => c.Value.NetChannel != null).Select(c => c.Value.NetID).ToArray();
 
-            var L = ScriptEnvironment.CurrentEnvironment.NativeLuaState;
-            var lua = ScriptEnvironment.CurrentEnvironment.LuaState;
-
-            LuaL.LuaCreateTable(L, subClients.Length, 0);
-
-            var table = LuaLib.LuaGetTop(L);
-            var i = 1;
+            var table = new LuaTable();
+            var i = 0;
 
             foreach (var client in subClients)
             {
-                lua.Push(client);
-                LuaLib.LuaRawSetI(L, table, i);
+                table[i] = client;
 
                 i++;
             }
 
-            var luaTable = new LuaTable(LuaLib.LuaRef(L, 1), lua);
-
-            return luaTable;
+            return table;
         }
 
-        [LuaFunction("GetPlayerName")]
+        [LuaMember("GetPlayerName")]
         static string GetPlayerName(int source)
         {
             var player = FindPlayer(source);
@@ -50,7 +41,7 @@ namespace CitizenMP.Server.Resources
             return null;
         }
 
-        [LuaFunction("GetPlayerGuid")]
+        [LuaMember("GetPlayerGuid")]
         static string GetPlayerGuid(int source)
         {
             var player = FindPlayer(source);
@@ -63,7 +54,7 @@ namespace CitizenMP.Server.Resources
             return null;
         }
 
-        [LuaFunction("GetPlayerEP")]
+        [LuaMember("GetPlayerEP")]
         static string GetPlayerEP(int source)
         {
             var player = FindPlayer(source);
@@ -76,7 +67,7 @@ namespace CitizenMP.Server.Resources
             return null;
         }
 
-        [LuaFunction("GetPlayerLastMsg")]
+        [LuaMember("GetPlayerLastMsg")]
         static double GetPlayerLastMsg_f(int source)
         {
             var player = FindPlayer(source);
@@ -89,7 +80,7 @@ namespace CitizenMP.Server.Resources
             return 99999999;
         }
 
-        [LuaFunction("GetHostId")]
+        [LuaMember("GetHostId")]
         static int GetHostId()
         {
             return ScriptEnvironment.CurrentEnvironment.Resource.Manager.GameServer.GetHostID();
