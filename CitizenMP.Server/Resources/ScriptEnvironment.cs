@@ -231,11 +231,6 @@ namespace CitizenMP.Server.Resources
                 throw new InvalidOperationException("Tried to dispose the current script environment");
             }
 
-            foreach (var chunk in m_curChunks)
-            {
-                chunk.Dispose();
-            }
-
             var field = ms_luaState.GetType().GetField("setMemberBinder", BindingFlags.NonPublic | BindingFlags.Instance);
             var binders = (Dictionary<string, System.Runtime.CompilerServices.CallSiteBinder>)field.GetValue(ms_luaState);
 
@@ -347,8 +342,6 @@ namespace CitizenMP.Server.Resources
                     var initDelegate = new Func<LuaResult>(() => m_luaEnvironment.DoChunk(initFunction));
 
                     InitHandler.DynamicInvoke(initDelegate, preParse);
-
-                    initFunction.Dispose();
                 }
 
                 if (!preParse)
