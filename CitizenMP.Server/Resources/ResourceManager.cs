@@ -11,13 +11,24 @@ namespace CitizenMP.Server.Resources
     {
         private Dictionary<string, Resource> m_resources;
 
+        private Configuration m_configuration;
+
+        public Configuration Configuration
+        {
+            get
+            {
+                return m_configuration;
+            }
+        }
+
         internal Game.GameServer GameServer { get; private set; }
 
         internal Game.RconLog RconLog { get; private set; }
 
-        public ResourceManager()
+        public ResourceManager(Configuration config)
         {
             m_resources = new Dictionary<string, Resource>();
+            m_configuration = config;
 
             RconLog = new Game.RconLog();
         }
@@ -53,6 +64,7 @@ namespace CitizenMP.Server.Resources
 
             var res = new Resource(name, path);
             res.Manager = this;
+            res.DownloadConfiguration = m_configuration.GetDownloadConfiguration(name);
 
             AddResource(res);
 
@@ -171,6 +183,27 @@ namespace CitizenMP.Server.Resources
         {
             m_eventCancelationState.Pop();
             m_eventCancelationState.Push(true);
+        }
+
+        public void StartSynchronization()
+        {
+            Task.Run(async () =>
+            {
+                foreach (var resource in m_resources)
+                {
+                    if (resource.Value.State == ResourceState.Running)
+                    {
+                        var downloadConfig = m_configuration.GetDownloadConfiguration(resource.Key);
+
+                        if (downloadConfig != null && !string.IsNullOrWhiteSpace(downloadConfig.UploadURL))
+                        {
+                            var syncProvider = new ResourceUpdater(resource.Value, downloadConfig.UploadURL);
+
+                            await syncProvider.SyncResource();
+                        }
+                    }
+                }
+            });
         }
     }
 }

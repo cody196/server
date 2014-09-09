@@ -35,5 +35,31 @@ namespace CitizenMP.Server
         public bool DisableAuth { get; set; }
 
         public string Hostname { get; set; }
+
+        public Dictionary<string, DownloadConfiguration> Downloads { get; set; }
+
+        public DownloadConfiguration GetDownloadConfiguration(string resourceName)
+        {
+            DownloadConfiguration config;
+
+            if (Downloads.TryGetValue(resourceName, out config))
+            {
+                return config;
+            }
+
+            if (Downloads.TryGetValue("all", out config))
+            {
+                return config;
+            }
+
+            return null;
+        }
+    }
+
+    public class DownloadConfiguration
+    {
+        public string BaseURL { get; set; }
+
+        public string UploadURL { get; set; }
     }
 }

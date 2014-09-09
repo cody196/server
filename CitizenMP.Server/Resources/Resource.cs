@@ -25,6 +25,8 @@ namespace CitizenMP.Server.Resources
         public List<string> Dependants { get; private set; }
         public List<string> ServerScripts { get; private set; }
 
+        public DownloadConfiguration DownloadConfiguration { get; set; }
+
         public ResourceManager Manager { get; set; }
 
         public string ClientPackageHash { get; private set; }
@@ -459,6 +461,8 @@ namespace CitizenMP.Server.Resources
             return true;
         }
 
+        public bool IsSynchronizing { get; set; }
+
         private bool UpdateClientPackage()
         {
             lock (m_watcher)
@@ -488,6 +492,21 @@ namespace CitizenMP.Server.Resources
                         var rpf = new Formats.RPFFile();
                         requiredFiles.Where(a => File.Exists(System.IO.Path.Combine(Path, a))).ToList().ForEach(a => rpf.AddFile(a, File.ReadAllBytes(System.IO.Path.Combine(Path, a))));
                         rpf.Write(rpfName);
+
+                        // synchronize the files with a download server
+                        if (DownloadConfiguration != null && !string.IsNullOrWhiteSpace(DownloadConfiguration.UploadURL))
+                        {
+                            var updater = new ResourceUpdater(this, DownloadConfiguration.UploadURL);
+
+                            Task.Run(async () =>
+                            {
+                                IsSynchronizing = true;
+
+                                await updater.SyncResource();
+
+                                IsSynchronizing = false;
+                            });
+                        }
                     }
 
                     // and get the hash of the client package to store for ourselves (yes, we do this on every load; screw big RPF files, we're reading them anyway)
@@ -509,6 +528,16 @@ namespace CitizenMP.Server.Resources
         public Stream OpenClientPackage()
         {
             return File.Open("cache/http-files/" + Name + ".rpf", FileMode.Open, FileAccess.Read, FileShare.Read);
+        }
+
+        public FileInfo GetClientPackageInfo()
+        {
+            return new FileInfo("cache/http-files/" + Name + ".rpf");
+        }
+
+        public IEnumerable<FileInfo> GetStreamFilesInfo()
+        {
+            return StreamEntries.Where(e => e.Value.FileName != null).Select(e => new FileInfo(e.Value.FileName));
         }
 
         public Stream GetStreamFile(string baseName)

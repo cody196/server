@@ -30,6 +30,11 @@ namespace CitizenMP.Server
                     this.Log().Fatal("No port was configured.");
                     return;
                 }
+
+                if (config.Downloads == null)
+                {
+                    config.Downloads = new Dictionary<string, DownloadConfiguration>();
+                }
             }
             catch (System.IO.IOException)
             {
@@ -63,7 +68,7 @@ namespace CitizenMP.Server
             }
 
             var commandManager = new Commands.CommandManager();
-            var resManager = new Resources.ResourceManager();
+            var resManager = new Resources.ResourceManager(config);
 
             // create the game server (as resource scanning needs it now)
             var gameServer = new Game.GameServer(config, resManager, commandManager, client);
@@ -110,6 +115,9 @@ namespace CitizenMP.Server
                     res.Start();
                 }
             }
+
+            // start synchronizing the started resources
+            resManager.StartSynchronization();
 
             // main loop
             int lastTickCount = Environment.TickCount;

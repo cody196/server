@@ -27,3 +27,9 @@ RconPassword: lovely
 Hostname: INTERNETWORKING DEVELOPMENT
 
 PlatformServer: iv-platform.prod.citizen.re
+
+# the following is an example for resource download offloading
+#Downloads:
+#    all:
+#        BaseURL: http://localhost/dotty/dots/
+#        UploadURL: ftps://lovely:dotty@localhost/dots/
