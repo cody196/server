@@ -235,7 +235,7 @@ namespace CitizenMP.Server.Resources
                 throw new InvalidOperationException("Tried to dispose the current script environment");
             }
 
-            var field = ms_luaState.GetType().GetField("setMemberBinder", BindingFlags.NonPublic | BindingFlags.Instance);
+            /*var field = ms_luaState.GetType().GetField("setMemberBinder", BindingFlags.NonPublic | BindingFlags.Instance);
             var binders = (Dictionary<string, System.Runtime.CompilerServices.CallSiteBinder>)field.GetValue(ms_luaState);
 
             Console.WriteLine("--- BOUNDARY ---");
@@ -269,7 +269,7 @@ namespace CitizenMP.Server.Resources
                         Console.WriteLine("{0}: {1}", binder.Key, prop.GetValue(rules));
                     }
                 }
-            }
+            }*/
 
             m_curChunks.Clear();
 
