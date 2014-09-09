@@ -29,7 +29,7 @@ namespace CitizenMP.Server.HTTP
                     return result;
                 }
 
-                /*if (!gameServer.Configuration.DisableAuth)
+                if (!gameServer.Configuration.DisableAuth)
                 {
                     string authTicket;
 
@@ -48,7 +48,7 @@ namespace CitizenMP.Server.HTTP
 
                         return result;
                     }
-                }*/
+                }
 
                 var client = new Client();
                 client.Token = TokenGenerator.GenerateToken();
