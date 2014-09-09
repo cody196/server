@@ -2,10 +2,7 @@
 -- lua-MessagePack : <http://fperrad.github.com/lua-MessagePack/>
 --
 
-local r, jit = pcall(require, 'jit')
-if not r then
-    jit = nil
-end
+local r, jit = nil, nil
 
 local SIZEOF_NUMBER = 8
 local NUMBER_INTEGRAL = false

@@ -16,6 +16,7 @@ namespace CitizenMP.Server.Resources
         private LuaGlobal m_luaEnvironment;
 
         private static Lua ms_luaState;
+        private static ILuaDebug ms_luaDebug;
         private static List<KeyValuePair<string, MethodInfo>> ms_luaFunctions = new List<KeyValuePair<string, MethodInfo>>();
         //private static List<KeyValuePair<string, LuaNativeFunction>> ms_nativeFunctions = new List<KeyValuePair<string, LuaNativeFunction>>();
 
@@ -151,11 +152,14 @@ namespace CitizenMP.Server.Resources
                 {
                     ms_luaState = new Lua();
 
+                    //ms_luaDebug = new LuaStackTraceDebugger();
+                    ms_luaDebug = null;
+
                     ms_initChunks = new []
                     {
-                        ms_luaState.CompileChunk("system/MessagePack.lua", null),
-                        ms_luaState.CompileChunk("system/dkjson.lua", null),
-                        ms_luaState.CompileChunk("system/resource_init.lua", null)
+                        ms_luaState.CompileChunk("system/MessagePack.lua", ms_luaDebug),
+                        ms_luaState.CompileChunk("system/dkjson.lua", ms_luaDebug),
+                        ms_luaState.CompileChunk("system/resource_init.lua", ms_luaDebug)
                     };
                 }
 
@@ -291,7 +295,7 @@ namespace CitizenMP.Server.Resources
                 {
                     lock (m_luaEnvironment)
                     {
-                        var chunk = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, script), null);
+                        var chunk = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, script), ms_luaDebug);
                         m_luaEnvironment.DoChunk(chunk);
                         m_curChunks.Add(chunk);
                     }
@@ -338,7 +342,7 @@ namespace CitizenMP.Server.Resources
 
                 lock (m_luaEnvironment)
                 {
-                    var initFunction = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, "__resource.lua"), null);
+                    var initFunction = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, "__resource.lua"), ms_luaDebug);
                     var initDelegate = new Func<LuaResult>(() => m_luaEnvironment.DoChunk(initFunction));
 
                     InitHandler.DynamicInvoke(initDelegate, preParse);
