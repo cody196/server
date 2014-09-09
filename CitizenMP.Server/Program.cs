@@ -131,8 +131,15 @@ namespace CitizenMP.Server
             // initialize the logging subsystem
             LoggingExtensions.Logging.Log.InitializeWith<LoggingExtensions.NLog.NLogLog>();
 
-            // start the program
-            new Program().Start((args.Length > 0) ? args[0] : null).Wait();
+            try
+            {
+                // start the program
+                new Program().Start((args.Length > 0) ? args[0] : null).Wait();
+            }
+            catch (AggregateException e)
+            {
+                Console.WriteLine(e.InnerException.ToString());
+            }
         }
     }
 }

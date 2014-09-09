@@ -16,9 +16,15 @@ namespace CitizenMP.Server.Game
     {
         private Socket m_gameSocket;
 
+        private Socket m_gameSocket6;
+
         private SocketAsyncEventArgs m_asyncEventArgs;
 
+        private SocketAsyncEventArgs m_asyncEventArgs6;
+
         private byte[] m_receiveBuffer;
+
+        private byte[] m_receiveBuffer6;
 
         private Client m_host;
 
@@ -99,22 +105,49 @@ namespace CitizenMP.Server.Game
 
             m_gameSocket.Blocking = false;
 
+            try
+            {
+                m_gameSocket6 = new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp);
+                m_gameSocket6.Bind(new IPEndPoint(IPAddress.IPv6Any, m_configuration.ListenPort));
+
+                m_gameSocket6.Blocking = false;
+            }
+            catch (Exception ex)
+            {
+                this.Log().Error(() => "Couldn't create IPv6 socket. Exception message: " + ex.Message, ex);
+
+                m_gameSocket6 = null;
+            }
+
             m_receiveBuffer = new byte[2048];
+            m_receiveBuffer6 = new byte[2048];
 
             if (UseAsync)
             {
-                m_asyncEventArgs = new SocketAsyncEventArgs();
-                m_asyncEventArgs.SetBuffer(m_receiveBuffer, 0, m_receiveBuffer.Length);
+                m_asyncEventArgs = CreateAsyncEventArgs(m_gameSocket, m_receiveBuffer);
 
-                m_asyncEventArgs.RemoteEndPoint = new IPEndPoint(IPAddress.None, 0);
-
-                m_asyncEventArgs.Completed += m_asyncEventArgs_Completed;
-
-                if (!m_gameSocket.ReceiveFromAsync(m_asyncEventArgs))
+                if (m_gameSocket6 != null)
                 {
-                    m_asyncEventArgs_Completed(this, m_asyncEventArgs);
+                    m_asyncEventArgs6 = CreateAsyncEventArgs(m_gameSocket6, m_receiveBuffer6);
                 }
             }
+        }
+
+        private SocketAsyncEventArgs CreateAsyncEventArgs(Socket socket, byte[] receiveBuffer)
+        {
+            var args = new SocketAsyncEventArgs();
+            args.SetBuffer(receiveBuffer, 0, receiveBuffer.Length);
+
+            args.RemoteEndPoint = new IPEndPoint((socket.AddressFamily == AddressFamily.InterNetworkV6) ? IPAddress.IPv6None : IPAddress.None, 0);
+
+            args.Completed += m_asyncEventArgs_Completed;
+
+            if (!socket.ReceiveFromAsync(args))
+            {
+                m_asyncEventArgs_Completed(socket, args);
+            }
+
+            return args;
         }
 
         void ProcessOOB(IPEndPoint remoteEP, byte[] buffer, int length)
@@ -261,7 +294,7 @@ namespace CitizenMP.Server.Game
                 client.NetID = ClientInstances.AssignNetID();
 
                 client.RemoteEP = remoteEP;
-                client.Socket = m_gameSocket;
+                client.Socket = (remoteEP.AddressFamily == AddressFamily.InterNetworkV6) ? m_gameSocket6 : m_gameSocket;
 
                 SendOutOfBand(remoteEP, "connectOK {0} {1} {2}", client.NetID, (m_host != null) ? m_host.NetID : -1, (m_host != null) ? m_host.Base : -1);
 
@@ -278,7 +311,14 @@ namespace CitizenMP.Server.Game
 
             try
             {
-                m_gameSocket.SendTo(outMessage, remoteEP);
+                if (remoteEP.AddressFamily == AddressFamily.InterNetworkV6)
+                {
+                    m_gameSocket6.SendTo(outMessage, remoteEP);
+                }
+                else
+                {
+                    m_gameSocket.SendTo(outMessage, remoteEP);
+                }
             }
             catch (SocketException) { }
         }
@@ -739,9 +779,9 @@ namespace CitizenMP.Server.Game
             }
 
             // this may very well result in a stack overflow ;/
-            if (!m_gameSocket.ReceiveFromAsync(e))
+            if (!((Socket)sender).ReceiveFromAsync(e))
             {
-                m_asyncEventArgs_Completed(this, e);
+                m_asyncEventArgs_Completed(sender, e);
             }
         }
 
@@ -770,30 +810,40 @@ namespace CitizenMP.Server.Game
                 // network reception
                 EndPoint receiveEP = new IPEndPoint(IPAddress.None, 0);
 
-                while (true)
+                Action<Socket> receiveFunc = (socket) =>
                 {
-                    try
+                    while (true)
                     {
-                        int length = m_gameSocket.ReceiveFrom(m_receiveBuffer, ref receiveEP);
+                        try
+                        {
+                            int length = socket.ReceiveFrom(m_receiveBuffer, ref receiveEP);
 
-                        if (length > 0)
-                        {
-                            ProcessIncomingPacket(m_receiveBuffer, length, (IPEndPoint)receiveEP);
+                            if (length > 0)
+                            {
+                                ProcessIncomingPacket(m_receiveBuffer, length, (IPEndPoint)receiveEP);
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
-                        else
+                        catch (SocketException e)
                         {
+                            if (e.SocketErrorCode != SocketError.WouldBlock)
+                            {
+                                this.Log().Warn("socket error {0}", e.Message);
+                            }
+
                             break;
                         }
                     }
-                    catch (SocketException e)
-                    {
-                        if (e.SocketErrorCode != SocketError.WouldBlock)
-                        {
-                            this.Log().Warn("socket error {0}", e.Message);
-                        }
+                };
 
-                        break;
-                    }
+                receiveFunc(m_gameSocket);
+
+                if (m_gameSocket6 != null)
+                {
+                    receiveFunc(m_gameSocket6);
                 }
             }
 

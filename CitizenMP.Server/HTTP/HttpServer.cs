@@ -44,6 +44,7 @@ namespace CitizenMP.Server.HTTP
             var httpServer = new uhttpsharp.HttpServer(new HttpRequestProvider());
 
             httpServer.Use(new TcpListenerAdapter(new TcpListener(IPAddress.Any, m_configuration.ListenPort)));
+            httpServer.Use(new TcpListenerAdapter(new TcpListener(IPAddress.IPv6Any, m_configuration.ListenPort)));
 
             httpServer.Use(new HttpRouter().With("client", new AnonymousHttpRequestHandler(async (context, next) =>
             {
