@@ -65,9 +65,12 @@ namespace CitizenMP.Server.HTTP
 
                     var configEntry = resourceMgr.Configuration.GetDownloadConfiguration(resource.Name);
 
-                    if (!string.IsNullOrWhiteSpace(configEntry.BaseURL))
+                    if (configEntry != null)
                     {
-                        rObject["fileServer"] = configEntry.BaseURL;
+                        if (!string.IsNullOrWhiteSpace(configEntry.BaseURL))
+                        {
+                            rObject["fileServer"] = configEntry.BaseURL;
+                        }
                     }
 
                     resources.Add(rObject);
