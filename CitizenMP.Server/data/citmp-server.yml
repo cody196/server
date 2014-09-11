@@ -28,6 +28,8 @@ Hostname: INTERNETWORKING DEVELOPMENT
 
 PlatformServer: iv-platform.prod.citizen.re
 
+ScriptDebug: true
+
 # the following is an example for resource download offloading
 #Downloads:
 #    all:

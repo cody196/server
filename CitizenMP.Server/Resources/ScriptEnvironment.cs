@@ -412,13 +412,18 @@ namespace CitizenMP.Server.Resources
                 dynamic luaEnvironment = m_luaEnvironment;
                 LuaTable table = luaEnvironment.msgpack.unpack(argsSerialized);
 
-                var args = new object[table.Length];
-                var i = 0;
+                var args = new object[0];
 
-                foreach (var value in table)
+                if (table != null)
                 {
-                    args[i] = value.Value;
-                    i++;
+                    args = new object[table.Length];
+                    var i = 0;
+
+                    foreach (var value in table)
+                    {
+                        args[i] = value.Value;
+                        i++;
+                    }
                 }
 
                 foreach (var handler in eventHandlers)

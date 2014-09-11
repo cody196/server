@@ -126,22 +126,24 @@ AddEventHandler('onResourceStart', function(resource)
     end
 end)
 
+local function handleRoundEnd()
+	local possibleMaps = {}
+
+	for map, data in pairs(maps) do
+		if data.gameTypes[currentGameType] then
+			table.insert(possibleMaps, map)
+		end
+	end
+
+	if #possibleMaps > 0 then
+		local rnd = math.random(#possibleMaps)
+		changeMap(possibleMaps[rnd])
+	end
+end
+
 AddEventHandler('mapmanager:roundEnded', function()
     -- set a timeout as we don't want to return to a dead environment
-    SetTimeout(50, function()
-        local possibleMaps = {}
-
-        for map, data in pairs(maps) do
-            if data.gameTypes[currentGameType] then
-                table.insert(possibleMaps, map)
-            end
-        end
-
-        if #possibleMaps > 0 then
-            local rnd = math.random(#possibleMaps)
-            changeMap(possibleMaps[rnd])
-        end
-    end)
+    SetTimeout(50, handleRoundEnd) -- not a closure as to work around some issue in neolua?
 end)
 
 AddEventHandler('onResourceStop', function(resource)
