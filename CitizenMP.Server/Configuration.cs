@@ -20,6 +20,8 @@ namespace CitizenMP.Server
             return deserializer.Deserialize<Configuration>(new StringReader(buffer));
         }
 
+        public bool ScriptDebug { get; set; }
+
         public List<string> AutoStartResources { get; set; }
 
         public List<string> PreParseResources { get; set; }

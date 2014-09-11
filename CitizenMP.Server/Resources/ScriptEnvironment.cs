@@ -155,6 +155,11 @@ namespace CitizenMP.Server.Resources
                     //ms_luaDebug = new LuaStackTraceDebugger();
                     ms_luaDebug = null;
 
+                    if (Resource.Manager.Configuration.ScriptDebug)
+                    {
+                        ms_luaDebug = new LuaStackTraceDebugger();
+                    }
+
                     ms_initChunks = new []
                     {
                         ms_luaState.CompileChunk("system/MessagePack.lua", ms_luaDebug),
@@ -311,6 +316,8 @@ namespace CitizenMP.Server.Resources
                 {
                     this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
                 }
+
+                PrintLuaStackTrace(e);
             }
             finally
             {
@@ -368,6 +375,8 @@ namespace CitizenMP.Server.Resources
                 {
                     this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
                 }
+
+                PrintLuaStackTrace(e);
             }
             finally
             {
@@ -427,6 +436,8 @@ namespace CitizenMP.Server.Resources
                             this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
                         }
 
+                        PrintLuaStackTrace(e);
+
                         Game.RconPrint.Print("Error in resource {0}: {1}\n", m_resource.Name, e.Message);
 
                         eventHandlers.Clear();
@@ -463,29 +474,55 @@ namespace CitizenMP.Server.Resources
                 var oldLastEnvironment = LastEnvironment;
                 LastEnvironment = lastEnvironment;
 
-                // unpack
-                var unpacker = (Func<string, LuaTable>)((LuaTable)m_luaEnvironment["msgpack"])["unpack"];
-                var table = unpacker(argsSerialized);
+                string retstr = "";
 
-                var args = new object[table.Length];
-                var i = 0;
-
-                foreach (var value in table)
+                try
                 {
-                    args[i] = value.Value;
-                    i++;
+                    // unpack
+                    var unpacker = (Func<string, LuaTable>)((LuaTable)m_luaEnvironment["msgpack"])["unpack"];
+                    var table = unpacker(argsSerialized);
+
+                    var args = new object[table.Length];
+                    var i = 0;
+
+                    foreach (var value in table)
+                    {
+                        args[i] = value.Value;
+                        i++;
+                    }
+
+                    // invoke
+                    var objects = (LuaResult)func.DynamicInvoke(args.Take(func.Method.GetParameters().Length - 1).ToArray());
+
+                    // pack return values
+                    retstr = EventScriptFunctions.SerializeArguments(objects);
                 }
+                catch (Exception e)
+                {
+                    this.Log().Error(() => "Error invoking reference for resource " + m_resource.Name + ": " + e.Message, e);
 
-                // invoke
-                var objects = (LuaResult)func.DynamicInvoke(args.Take(func.Method.GetParameters().Length - 1).ToArray());
+                    if (e.InnerException != null)
+                    {
+                        this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
+                    }
 
-                // pack return values
-                var retstr = EventScriptFunctions.SerializeArguments(objects);
+                    PrintLuaStackTrace(e);
+                }
 
                 ms_currentEnvironment = lastEnvironment;
                 LastEnvironment = oldLastEnvironment;
 
                 return retstr;
+            }
+        }
+
+        private void PrintLuaStackTrace(Exception e)
+        {
+            var data = LuaExceptionData.GetData(e);
+
+            if (data != null)
+            {
+                this.Log().Error("Stack trace: {0}", data.StackTrace);
             }
         }
 
