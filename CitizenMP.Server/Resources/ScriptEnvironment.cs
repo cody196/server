@@ -359,7 +359,7 @@ namespace CitizenMP.Server.Resources
                 {
                     foreach (var script in m_serverScripts)
                     {
-                        var chunk = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, script), null);
+                        var chunk = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, script), ms_luaDebug);
                         m_luaEnvironment.DoChunk(chunk);
                         m_curChunks.Add(chunk);
                     }
@@ -522,7 +522,10 @@ namespace CitizenMP.Server.Resources
 
             if (data != null)
             {
-                this.Log().Error("Stack trace: {0}", data.StackTrace);
+                foreach (var frame in data)
+                {
+                    this.Log().Error(frame.ToString());
+                }
             }
         }
 
