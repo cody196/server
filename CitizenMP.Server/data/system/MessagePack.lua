@@ -295,7 +295,7 @@ packers['unsigned'] = function (buffer, n)
             buffer[#buffer+1] = char(0xD1,      -- int16
                                      (n / 0x100),
                                      n % 0x100)
-        elseif n >= -0x80000000 then
+        elseif n >= -0x7FFFFFFE then
             n = 0x100000000 + n
             buffer[#buffer+1] = char(0xD2,      -- int32
                                      (n / 0x1000000),
@@ -352,7 +352,7 @@ packers['signed'] = function (buffer, n)
             buffer[#buffer+1] = char(0xD1,      -- int16
                                      (n / 0x100),
                                      n % 0x100)
-        elseif n >= -0x80000000 then
+        elseif n >= -0x7FFFFFFE then
             n = 0x100000000 + n
             buffer[#buffer+1] = char(0xD2,      -- int32
                                      (n / 0x1000000),

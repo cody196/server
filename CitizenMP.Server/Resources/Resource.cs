@@ -101,6 +101,8 @@ namespace CitizenMP.Server.Resources
                 throw new InvalidOperationException("can not start a resource that is not stopped");
             }
 
+            this.Log().Info("Starting resource {0} (last state: {1}).", Name, State);
+
             // as this is already done for us in this case
             if (State != ResourceState.Starting)
             {
@@ -187,6 +189,8 @@ namespace CitizenMP.Server.Resources
             // trigger event
             if (!Manager.TriggerEvent("onResourceStart", -1, Name))
             {
+                this.Log().Info("Resource start canceled by event.");
+
                 Stop();
 
                 return false;
@@ -214,6 +218,8 @@ namespace CitizenMP.Server.Resources
             {
                 throw new InvalidOperationException(string.Format("Tried to stop a resource ({0}) that wasn't running.", Name));
             }
+
+            this.Log().Info("Stopping resource {0} (last state: {1}).", Name, State);
 
             if (State == ResourceState.Running)
             {
@@ -345,6 +351,8 @@ namespace CitizenMP.Server.Resources
 
             if (!File.Exists(streamCacheFile))
             {
+                this.Log().Info("Generating stream cache list for {0} (no stream cache)", Name);
+
                 needsUpdate = true;
             }
 
@@ -355,6 +363,8 @@ namespace CitizenMP.Server.Resources
 
                 if (modDate > cacheModDate)
                 {
+                    this.Log().Info("Generating stream cache list for {0} (modification dates differ)", Name);
+
                     needsUpdate = true;
                 }
             }

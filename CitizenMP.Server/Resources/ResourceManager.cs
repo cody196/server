@@ -117,6 +117,8 @@ namespace CitizenMP.Server.Resources
                             Console.Write(".");
                         }
 
+                        this.Log().Info("Found resource {0} in {1}.", basename, dir);
+
                         AddResource(basename, dir);
                     }
                 }

@@ -44,6 +44,9 @@ namespace CitizenMP.Server
 
             var platformServer = config.PlatformServer ?? "iv-platform.prod.citizen.re";
             var client = new NPClient(platformServer, (config.PlatformPort == 0) ? (ushort)3036 : (ushort)config.PlatformPort);
+
+            this.Log().Info("Connecting to Terminal platform server at {0}.", platformServer);
+
             var connectResult = client.Connect();
 
             if (!connectResult)
@@ -51,6 +54,8 @@ namespace CitizenMP.Server
                 this.Log().Fatal("Could not connect to the configured platform server ({0}).", platformServer);
                 return;
             }
+
+            this.Log().Info("Authenticating to Terminal with anonymous license key.");
 
             // authenticate anonymously
             var task = client.AuthenticateWithLicenseKey("");
@@ -67,6 +72,8 @@ namespace CitizenMP.Server
                 return;
             }
 
+            this.Log().Info("Creating initial server instance.");
+
             var commandManager = new Commands.CommandManager();
             var resManager = new Resources.ResourceManager(config);
 
@@ -76,6 +83,8 @@ namespace CitizenMP.Server
             // preparse resources
             if (config.PreParseResources != null)
             {
+                this.Log().Info("Pre-parsing resources: {0}", string.Join(", ", config.PreParseResources));
+
                 foreach (var resource in config.PreParseResources)
                 {
                     resManager.ScanResources("resources/", resource);
@@ -90,9 +99,7 @@ namespace CitizenMP.Server
             }
 
             // scan resources
-            Console.Write("Parsing resources: ");
             resManager.ScanResources("resources/");
-            Console.WriteLine();
 
             // start the game server
             gameServer.Start();
@@ -136,17 +143,26 @@ namespace CitizenMP.Server
 
         static void Main(string[] args)
         {
-            // initialize the logging subsystem
-            LoggingExtensions.Logging.Log.InitializeWith<LoggingExtensions.NLog.NLogLog>();
+            // if running on WinNT
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                Logging.WindowedLogger.Initialize();
+            }
+
+            Logging.BaseLog.SetStripSourceFilePath();
 
             try
             {
                 // start the program
                 new Program().Start((args.Length > 0) ? args[0] : null).Wait();
+
+                Environment.Exit(0);
             }
             catch (AggregateException e)
             {
                 Console.WriteLine(e.InnerException.ToString());
+
+                Environment.Exit(1);
             }
         }
     }
