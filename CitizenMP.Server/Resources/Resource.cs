@@ -29,7 +29,7 @@ namespace CitizenMP.Server.Resources
 
         public ResourceManager Manager { get; set; }
 
-        public string ClientPackageHash { get; private set; }
+        public string ClientPackageHash { get; internal set; }
 
         private FileSystemWatcher m_watcher;
         private ScriptEnvironment m_scriptEnvironment;
@@ -128,23 +128,18 @@ namespace CitizenMP.Server.Resources
                     res.AddDependant(Name);
                 }
 
+                // execute tasks
+                var runner = new Tasks.ResourceTaskRunner();
+
+                if (!runner.ExecuteTasks(this))
+                {
+                    this.Log().Error("Executing tasks for resource {0} failed.", Name);
+
+                    State = ResourceState.Error;
+                    return false;
+                }
+
                 m_watcher = new FileSystemWatcher();
-
-                if (!UpdateClientPackage())
-                {
-                    this.Log().Error("Couldn't update the client package.");
-
-                    State = ResourceState.Error;
-                    return false;
-                }
-
-                if (!UpdateStreamFiles())
-                {
-                    this.Log().Error("Couldn't update streamed files.");
-
-                    State = ResourceState.Error;
-                    return false;
-                }
 
                 // create script environment
                 if (!EnsureScriptEnvironment())
@@ -316,7 +311,8 @@ namespace CitizenMP.Server.Resources
                 await Task.Delay(500);
 
                 // go
-                UpdateClientPackage();
+                var runner = new Tasks.ResourceTaskRunner();
+                runner.ExecuteTasks(this);
 
                 // and unlock the lock
                 ms_clientUpdateQueued = false;
@@ -326,57 +322,6 @@ namespace CitizenMP.Server.Resources
         public void AddDependant(string name)
         {
             Dependants.Add(name);
-        }
-
-        private bool UpdateStreamFiles()
-        {
-            // check if a premade resource cache exists
-            var preCachePath = System.IO.Path.Combine(Path, "streamcache.sfl");
-
-            if (File.Exists(preCachePath))
-            {
-                return LoadStreamCacheList(null, preCachePath);
-            }
-
-            var streamFolder = System.IO.Path.Combine(Path, "stream"); 
-
-            if (!Directory.Exists(streamFolder))
-            {
-                return true;
-            }
-
-            var streamFiles = Directory.GetFiles(streamFolder, "*.*", SearchOption.AllDirectories);
-            var streamCacheFile = string.Format("cache/http-files/{0}.sfl", Name);
-            var needsUpdate = false;
-
-            if (!File.Exists(streamCacheFile))
-            {
-                this.Log().Info("Generating stream cache list for {0} (no stream cache)", Name);
-
-                needsUpdate = true;
-            }
-
-            if (!needsUpdate)
-            {
-                var modDate = streamFiles.Select(a => File.GetLastWriteTime(a)).OrderByDescending(a => a).First();
-                var cacheModDate = File.GetLastWriteTime(streamCacheFile);
-
-                if (modDate > cacheModDate)
-                {
-                    this.Log().Info("Generating stream cache list for {0} (modification dates differ)", Name);
-
-                    needsUpdate = true;
-                }
-            }
-
-            if (needsUpdate)
-            {
-                return CreateStreamCacheList(streamFiles, streamCacheFile);
-            }
-            else
-            {
-                return LoadStreamCacheList(streamFiles, streamCacheFile);
-            }
         }
 
         public class StreamCacheEntry
@@ -391,149 +336,7 @@ namespace CitizenMP.Server.Resources
 
         public IDictionary<string, StreamCacheEntry> StreamEntries { get; set; }
 
-        private bool CreateStreamCacheList(string[] files, string cacheFilename)
-        {
-            JArray cacheOutList = new JArray();
-
-            foreach (var file in files)
-            {
-                var hash = Utils.GetFileSHA1String(file);
-                var basename = System.IO.Path.GetFileName(file);
-
-                var stream = File.Open(file, FileMode.Open, FileAccess.Read, FileShare.Read);
-                var reader = new BinaryReader(stream);
-
-                var size = stream.Length;
-                var resourceFlags = size;
-                var resourceVersion = 0;
-
-                if (reader.ReadUInt32() == 0x05435352) // RSC\x5
-                {
-                    resourceVersion = reader.ReadInt32();
-                    resourceFlags = reader.ReadUInt32();
-                }
-
-                var obj = new JObject();
-                obj["Hash"] = hash;
-                obj["BaseName"] = basename;
-                obj["Size"] = size;
-                obj["RscFlags"] = resourceFlags;
-                obj["RscVersion"] = resourceVersion;
-
-                cacheOutList.Add(obj);
-            }
-
-            File.WriteAllText(cacheFilename, cacheOutList.ToString(Newtonsoft.Json.Formatting.None));
-
-            LoadStreamCacheList(files, cacheFilename);
-
-            return true;
-        }
-
-        private bool LoadStreamCacheList(string[] files, string cacheFile)
-        {
-            var cacheList = JArray.Parse(File.ReadAllText(cacheFile));
-            var cacheEntries = new Dictionary<string, StreamCacheEntry>();
-
-            foreach (var entry in cacheList)
-            {
-                var obj = entry as JObject;
-
-                if (obj == null)
-                {
-                    continue;
-                }
-
-                var newEntry = new StreamCacheEntry();
-                newEntry.BaseName = obj.Value<string>("BaseName");
-                newEntry.HashString = obj.Value<string>("Hash");
-                newEntry.RscFlags = obj.Value<uint>("RscFlags");
-                newEntry.RscVersion = obj.Value<uint>("RscVersion");
-                newEntry.Size = obj.Value<uint>("Size");
-
-                cacheEntries.Add(obj.Value<string>("BaseName"), newEntry);
-            }
-
-            if (files != null)
-            {
-                foreach (var file in files)
-                {
-                    var basename = System.IO.Path.GetFileName(file);
-
-                    if (!cacheEntries.ContainsKey(basename)) { continue; }
-
-                    cacheEntries[basename].FileName = file;
-                }
-            }
-
-            StreamEntries = cacheEntries;
-
-            return true;
-        }
-
         public bool IsSynchronizing { get; set; }
-
-        private bool UpdateClientPackage()
-        {
-            lock (m_watcher)
-            {
-                try
-                {
-                    var requiredFiles = new List<string>() { "__resource.lua" };
-
-                    // add all script files
-                    requiredFiles.AddRange(Scripts);
-                    requiredFiles.AddRange(AuxFiles);
-
-                    // get the last-modified date of the current RPF and the cache
-                    var rpfName = "cache/http-files/" + Name + ".rpf";
-
-                    var modDate = requiredFiles.Select(a => System.IO.Path.Combine(Path, a)).Select(a => File.GetLastWriteTime(a)).OrderByDescending(a => a).First();
-                    var rpfModDate = File.GetLastWriteTime(rpfName);
-
-                    if (modDate > rpfModDate)
-                    {
-                        // write the RPF
-                        if (!Directory.Exists("cache/http-files/"))
-                        {
-                            Directory.CreateDirectory("cache/http-files");
-                        }
-
-                        var rpf = new Formats.RPFFile();
-                        requiredFiles.Where(a => File.Exists(System.IO.Path.Combine(Path, a))).ToList().ForEach(a => rpf.AddFile(a, File.ReadAllBytes(System.IO.Path.Combine(Path, a))));
-                        rpf.Write(rpfName);
-
-                        // synchronize the files with a download server
-                        if (DownloadConfiguration != null && !string.IsNullOrWhiteSpace(DownloadConfiguration.UploadURL))
-                        {
-                            var updater = new ResourceUpdater(this, DownloadConfiguration.UploadURL);
-
-                            Task.Run(async () =>
-                            {
-                                IsSynchronizing = true;
-
-                                await updater.SyncResource();
-
-                                IsSynchronizing = false;
-                            });
-                        }
-                    }
-
-                    // and get the hash of the client package to store for ourselves (yes, we do this on every load; screw big RPF files, we're reading them anyway)
-                    var hash = Utils.GetFileSHA1String(rpfName);
-
-                    ClientPackageHash = hash;
-
-                    return true;
-                }
-                catch (Exception e)
-                {
-                    this.Log().Error(() => "Couldn't update the client package for " + Name + " - " + e.Message, e);
-
-                    return false;
-                }
-            }
-        }
 
         public Stream OpenClientPackage()
         {
