@@ -37,9 +37,10 @@ namespace CitizenMP.Server.Resources.Tasks
             }
 
             // if not, test modification times
-            var requiredFiles = GetRequiredFilesFor(resource);
+            var requiredFiles = GetRequiredFilesFor(resource).Select(a => Path.Combine(resource.Path, a));
+            requiredFiles = requiredFiles.Concat(resource.ExternalFiles.Select(a => a.Value.FullName));
 
-            var modDate = requiredFiles.Select(a => Path.Combine(resource.Path, a)).Select(a => File.GetLastWriteTime(a)).OrderByDescending(a => a).First();
+            var modDate = requiredFiles.Select(a => File.GetLastWriteTime(a)).OrderByDescending(a => a).First();
             var rpfModDate = File.GetLastWriteTime(rpfName);
 
             if (modDate > rpfModDate)
@@ -55,7 +56,7 @@ namespace CitizenMP.Server.Resources.Tasks
             return false;
         }
 
-        public override bool Process(Resource resource)
+        public override async Task<bool> Process(Resource resource)
         {
             // write the RPF
             if (!Directory.Exists("cache/http-files/"))
@@ -67,11 +68,17 @@ namespace CitizenMP.Server.Resources.Tasks
 
             try
             {
-                // if not, test modification times
-                var requiredFiles = GetRequiredFilesFor(resource);
-
+                // create new RPF
                 var rpf = new Formats.RPFFile();
+
+                // add required files
+                var requiredFiles = GetRequiredFilesFor(resource);
                 requiredFiles.Where(a => File.Exists(Path.Combine(resource.Path, a))).ToList().ForEach(a => rpf.AddFile(a, File.ReadAllBytes(Path.Combine(resource.Path, a))));
+                
+                // add external files
+                resource.ExternalFiles.ToList().ForEach(a => rpf.AddFile(a.Key, File.ReadAllBytes(a.Value.FullName)));
+
+                // and write the RPF
                 rpf.Write(rpfName);
 
                 // synchronize the files with a download server
@@ -79,14 +86,11 @@ namespace CitizenMP.Server.Resources.Tasks
                 {
                     var updater = new ResourceUpdater(resource, resource.DownloadConfiguration.UploadURL);
 
-                    Task.Run(async () =>
-                    {
-                        resource.IsSynchronizing = true;
+                    resource.IsSynchronizing = true;
 
-                        await updater.SyncResource();
+                    await updater.SyncResource();
 
-                        resource.IsSynchronizing = false;
-                    });
+                    resource.IsSynchronizing = false;
                 }
 
                 return true;

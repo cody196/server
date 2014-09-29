@@ -11,7 +11,7 @@ namespace CitizenMP.Server.Resources.Tasks
 {
     class ResourceTaskRunner
     {
-        public bool ExecuteTasks(Resource resource)
+        public async Task<bool> ExecuteTasks(Resource resource)
         {
             var tasks = new ResourceTask[]
             {
@@ -38,7 +38,7 @@ namespace CitizenMP.Server.Resources.Tasks
 
             foreach (var task in runTasks)
             {
-                if (!task.Process(resource))
+                if (!await task.Process(resource))
                 {
                     this.Log().Warn("Task {0} failed.", task.Id);
                     return false;

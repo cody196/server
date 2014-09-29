@@ -24,6 +24,7 @@ namespace CitizenMP.Server.Resources
         public List<string> AuxFiles { get; private set; }
         public List<string> Dependants { get; private set; }
         public List<string> ServerScripts { get; private set; }
+        public Dictionary<string, FileInfo> ExternalFiles { get; private set; }
 
         public DownloadConfiguration DownloadConfiguration { get; set; }
 
@@ -41,6 +42,7 @@ namespace CitizenMP.Server.Resources
             State = ResourceState.Stopped;
             Dependants = new List<string>();
             StreamEntries = new Dictionary<string, StreamCacheEntry>();
+            ExternalFiles = new Dictionary<string, FileInfo>();
         }
 
         public bool Parse()
@@ -89,7 +91,7 @@ namespace CitizenMP.Server.Resources
             return m_scriptEnvironment.DoInitFile(true);
         }
 
-        public bool Start()
+        public async Task<bool> Start()
         {
             if (State == ResourceState.Running)
             {
@@ -124,14 +126,14 @@ namespace CitizenMP.Server.Resources
                         return false;
                     }
 
-                    res.Start();
+                    await res.Start();
                     res.AddDependant(Name);
                 }
 
                 // execute tasks
                 var runner = new Tasks.ResourceTaskRunner();
 
-                if (!runner.ExecuteTasks(this))
+                if (!await runner.ExecuteTasks(this))
                 {
                     this.Log().Error("Executing tasks for resource {0} failed.", Name);
 

@@ -119,6 +119,10 @@ RegisterInitHandler(function(initScript, isPreParse)
         env.server_script = env.server_scripts
 	else
 		-- and add our native items
+		env.solution = function(n)
+			SetResourceInfo('clr_solution', n)
+		end
+
 		env.description = function(n)
 			SetResourceInfo('description', n)
 		end

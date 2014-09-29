@@ -63,13 +63,13 @@ namespace CitizenMP.Server.Resources.Tasks
             return false;
         }
 
-        public override bool Process(Resource resource)
+        public override Task<bool> Process(Resource resource)
         {
             var streamFolder = Path.Combine(resource.Path, "stream");
             var streamFiles = Directory.GetFiles(streamFolder, "*.*", SearchOption.AllDirectories);
             var streamCacheFile = string.Format("cache/http-files/{0}.sfl", resource.Name);
 
-            return CreateStreamCacheList(resource, streamFiles, streamCacheFile);
+            return Task.FromResult(CreateStreamCacheList(resource, streamFiles, streamCacheFile));
         }
 
         private bool CreateStreamCacheList(Resource resource, string[] files, string cacheFilename)

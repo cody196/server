@@ -69,10 +69,7 @@ namespace CitizenMP.Server.Resources
 
             try
             {
-                if (!resource.Start())
-                {
-                    return false;
-                }
+                resource.Start();
 
                 return true;
             }

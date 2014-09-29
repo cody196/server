@@ -93,7 +93,7 @@ namespace CitizenMP.Server
 
                     if (res != null)
                     {
-                        res.Start();
+                        await res.Start();
                     }
                 }
             }
@@ -119,7 +119,7 @@ namespace CitizenMP.Server
                 }
                 else
                 {
-                    res.Start();
+                    await res.Start();
                 }
             }
 

@@ -23,7 +23,7 @@ namespace CitizenMP.Server.Resources.Tasks
         /// </summary>
         /// <param name="resource">The resource to process the task on.</param>
         /// <returns>Whether or not the task succeeded.</returns>
-        public abstract bool Process(Resource resource);
+        public abstract Task<bool> Process(Resource resource);
 
         /// <summary>
         /// Gets an identifier for this task.

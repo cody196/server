@@ -42,7 +42,7 @@ namespace CitizenMP.Server.Logging
 
             //NLog.Config.SimpleConfigurator.ConfigureForTargetLogging(target, LogLevel.Info);
             config.AddTarget("window", target);
-            config.LoggingRules.Add(new LoggingRule("*", LogLevel.Debug, target));
+            config.LoggingRules.Add(new LoggingRule("*", LogLevel.Info, target));
 
             LogManager.Configuration = config;
             LogManager.ThrowExceptions = true;
