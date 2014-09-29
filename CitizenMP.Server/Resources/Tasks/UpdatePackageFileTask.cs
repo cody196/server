@@ -81,6 +81,11 @@ namespace CitizenMP.Server.Resources.Tasks
                 // and write the RPF
                 rpf.Write(rpfName);
 
+                // set the hash of the client package for clients to fetch
+                var hash = Utils.GetFileSHA1String(rpfName);
+
+                resource.ClientPackageHash = hash;
+
                 // synchronize the files with a download server
                 if (resource.DownloadConfiguration != null && !string.IsNullOrWhiteSpace(resource.DownloadConfiguration.UploadURL))
                 {

@@ -149,7 +149,7 @@ namespace CitizenMP.Server.Formats
                 writer.Write(new byte[] { (byte)'/', 0 });
             }
 
-            foreach (var entry in m_subEntries)
+            foreach (var entry in m_subEntries.OrderBy(e => e.Name))
             {
                 entry.WriteNames(writer);
             }
