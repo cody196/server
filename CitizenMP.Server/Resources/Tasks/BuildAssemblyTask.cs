@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
@@ -118,38 +119,83 @@ namespace CitizenMP.Server.Resources.Tasks
             var globalProperties = new Dictionary<string, string>();
             globalProperties["Configuration"] = "Release";
             globalProperties["OutputPath"] = Path.GetFullPath(Path.Combine("cache/resource_bin", resource.Name));
+            globalProperties["IntermediateOutputPath"] = Path.GetFullPath(Path.Combine("cache/resource_obj", resource.Name)) + "/";
 
-            // prepare a build request            
-            var buildRequest = new BuildRequestData(Path.GetFullPath(solution), globalProperties, "4.0", new[] { "Build" }, null);
-
-            // set the build parameters
-            var buildParameters = new BuildParameters();
-            buildParameters.Loggers = new[] { this };
-
-            BuildManager.DefaultBuildManager.BeginBuild(buildParameters);
-
-            // create a build submission and execute
-            var buildSubmission = BuildManager.DefaultBuildManager.PendBuildRequest(buildRequest);
-            await buildSubmission.ExecuteAsync();
-
-            // end building
-            BuildManager.DefaultBuildManager.EndBuild();
-
-            var success = (buildSubmission.BuildResult.OverallResult == BuildResultCode.Success);
-
-            if (success)
+            try
             {
-                var buildResult = buildSubmission.BuildResult.ResultsByTarget["Build"];
+                // prepare the project file
+                var projectRoot = ProjectRootElement.Open(Path.GetFullPath(solution));
 
-                foreach (var item in buildResult.Items)
+                // disable any Citizen profiles
+                foreach (var property in projectRoot.Properties)
                 {
-                    var baseName = Path.GetFileName(item.ItemSpec);
-
-                    resource.ExternalFiles[string.Format("bin/{0}", baseName)] = new FileInfo(item.ItemSpec);
+                    if (property.Name == "TargetFrameworkProfile")
+                    {
+                        property.Value = "";
+                    }
                 }
-            }
 
-            return success;
+                // we don't want the system mscorlib
+                projectRoot.AddProperty("NoStdLib", "true");
+
+                // add hint paths for all references
+                Func<string, string> getPath = a => Path.GetFullPath(Path.Combine("system/clrcore", a + ".dll"));
+
+                foreach (var item in projectRoot.Items)
+                {
+                    if (item.ItemType == "Reference")
+                    {
+                        item.AddMetadata("HintPath", getPath(item.Include));
+                        item.AddMetadata("Private", "false");
+                    }
+                }
+
+                // add our own mscorlib
+                projectRoot.AddItem("Reference", "mscorlib", new Dictionary<string, string>() {
+                    { "HintPath", getPath("mscorlib") },
+                    { "Private", "false" }
+                });
+                
+                // create an instance and build request
+                var projectInstance = new ProjectInstance(projectRoot, globalProperties, "4.0", ProjectCollection.GlobalProjectCollection);
+
+                var buildRequest = new BuildRequestData(projectInstance, new[] { "Build" }, null);
+
+                // set the build parameters
+                var buildParameters = new BuildParameters();
+                buildParameters.Loggers = new[] { this };
+
+                BuildManager.DefaultBuildManager.BeginBuild(buildParameters);
+
+                // create a build submission and execute
+                var buildSubmission = BuildManager.DefaultBuildManager.PendBuildRequest(buildRequest);
+                await buildSubmission.ExecuteAsync();
+
+                // end building
+                BuildManager.DefaultBuildManager.EndBuild();
+
+                var success = (buildSubmission.BuildResult.OverallResult == BuildResultCode.Success);
+
+                if (success)
+                {
+                    var buildResult = buildSubmission.BuildResult.ResultsByTarget["Build"];
+
+                    foreach (var item in buildResult.Items)
+                    {
+                        var baseName = Path.GetFileName(item.ItemSpec);
+
+                        resource.ExternalFiles[string.Format("bin/{0}", baseName)] = new FileInfo(item.ItemSpec);
+                    }
+                }
+
+                return success;
+            }
+            catch (Exception e)
+            {
+                this.Log().Error(() => "Building assembly failed: " + e.Message, e);
+
+                return false;
+            }
         }
     }
 
