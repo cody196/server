@@ -223,6 +223,8 @@ namespace CitizenMP.Server.Resources
                 {
                     this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
                 }
+
+                PrintLuaStackTrace(e);
             }
             finally
             {
@@ -279,6 +281,30 @@ namespace CitizenMP.Server.Resources
             m_curChunks.Clear();
 
             GC.Collect();
+        }
+
+        internal class PushedEnvironment
+        {
+            public ScriptEnvironment LastEnvironment { get; set; }
+            public ScriptEnvironment OldLastEnvironment { get; set; }
+
+            public void PopEnvironment()
+            {
+                ms_currentEnvironment = LastEnvironment;
+                ScriptEnvironment.LastEnvironment = OldLastEnvironment;
+            }
+        }
+
+        internal static PushedEnvironment PushEnvironment(ScriptEnvironment env)
+        {
+            var penv = new PushedEnvironment();
+            penv.LastEnvironment = ms_currentEnvironment;
+            ms_currentEnvironment = env;
+
+            penv.OldLastEnvironment = LastEnvironment;
+            LastEnvironment = penv.LastEnvironment;
+
+            return penv;
         }
 
         public Delegate InitHandler { get; set; }
@@ -521,7 +547,7 @@ namespace CitizenMP.Server.Resources
             }
         }
 
-        private void PrintLuaStackTrace(Exception e)
+        internal static void PrintLuaStackTrace(Exception e)
         {
             var data = LuaExceptionData.GetData(e);
 
@@ -529,7 +555,7 @@ namespace CitizenMP.Server.Resources
             {
                 foreach (var frame in data)
                 {
-                    this.Log().Error(frame.ToString());
+                    e.Log().Error(frame.ToString());
                 }
             }
         }

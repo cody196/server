@@ -110,6 +110,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources\EventScriptFunctions.cs" />
+    <Compile Include="Resources\HttpScriptFunctions.cs" />
     <Compile Include="Resources\LogScriptFunctions.cs" />
     <Compile Include="Resources\PlayerScriptFunctions.cs" />
     <Compile Include="Resources\RconScriptFunctions.cs" />

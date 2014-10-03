@@ -16,6 +16,7 @@ namespace CitizenMP.Server
             LuaType.RegisterTypeExtension(typeof(Extensions));
         }
 
+        [LuaMember("ssub")]
         public static string sub(this string s, int i, int j = -1)
         {
             if (String.IsNullOrEmpty(s) || j == 0)
@@ -69,6 +70,17 @@ namespace CitizenMP.Server
                     }
                     else
                     {
+                        bool negate = false;
+
+                        if (char.IsUpper(c))
+                        {
+                            c = char.ToLower(c);
+
+                            sb.Append("[^");
+
+                            negate = true;
+                        }
+
                         switch (c)
                         {
                             case 'a': // all letters
@@ -90,11 +102,20 @@ namespace CitizenMP.Server
                             case 'u': // all uppercase letters
                             case 'x': // all hexadecimal digits
                                 throw new NotImplementedException();
+                            case 'z':
+                                sb.Append("\0");
+                                break;
                             default:
                                 sb.Append('\\');
                                 sb.Append(c);
                                 break;
                         }
+
+                        if (negate)
+                        {
+                            sb.Append("]");
+                        }
+
                         lEscape = false;
                     }
                 }
@@ -108,6 +129,11 @@ namespace CitizenMP.Server
                 }
                 else
                     sb.Append(c);
+            }
+
+            if (sRegEx.StartsWith("^%-"))
+            {
+                Console.WriteLine();
             }
 
             return sb.ToString();
@@ -139,6 +165,7 @@ namespace CitizenMP.Server
             throw new NotImplementedException();
         } // func dump
 
+        [LuaMember("sfind")]
         public static LuaResult find(this string s, string pattern, int init = 1, bool plain = false)
         {
             if (String.IsNullOrEmpty(s))
@@ -163,13 +190,13 @@ namespace CitizenMP.Server
                 pattern = TranslateRegularExpression(pattern);
 
                 Regex r = new Regex(pattern);
-                Match m = r.Match(s, init);
+                Match m = r.Match(s.Substring(init - 1));
                 if (m.Success)
                 {
                     object[] result = new object[m.Captures.Count + 2];
 
-                    result[0] = m.Index + 1;
-                    result[1] = m.Index + m.Length;
+                    result[0] = m.Index + (init - 1) + 1;
+                    result[1] = m.Index + (init - 1) + m.Length;
                     for (int i = 0; i < m.Captures.Count; i++)
                         result[i + 2] = m.Captures[i].Value;
 
@@ -212,9 +239,32 @@ namespace CitizenMP.Server
             return new LuaResult(new Func<object, object, LuaResult>(matchEnum), e, e);
         } // func gmatch
 
+        [LuaMember("gsub")]
         public static string gsub(this string s, string pattern, string repl, int n)
         {
-            throw new NotImplementedException();
+            if (String.IsNullOrEmpty(s))
+                return string.Empty;
+            if (String.IsNullOrEmpty(pattern))
+                return string.Empty;
+
+            pattern = TranslateRegularExpression(pattern);
+
+            Regex r = new Regex(pattern);
+            return r.Replace(s, repl.Replace('%', '$'), (n == 0) ? int.MaxValue : n);
+        } // func gsub
+
+        [LuaMember("gsubf")]
+        public static string gsub(this string s, string pattern, Func<string, LuaResult> repl, int n)
+        {
+            if (String.IsNullOrEmpty(s))
+                return string.Empty;
+            if (String.IsNullOrEmpty(pattern))
+                return string.Empty;
+
+            pattern = TranslateRegularExpression(pattern);
+
+            Regex r = new Regex(pattern);
+            return r.Replace(s, match => repl(match.Value)[0].ToString(), (n == 0) ? int.MaxValue : n);
         } // func gsub
 
         public static int len(this string s)

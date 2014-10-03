@@ -1,6 +1,4 @@
 -- Module options:
-return
-
 local always_try_using_lpeg = true
 local register_global_module_table = true
 local global_module_name = 'json'
@@ -48,9 +46,9 @@ SOFTWARE.
 --      pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset
 --local error, require, pcall, select = error, require, pcall, select
 local floor, huge = math.floor, math.huge
-local strrep, gsub, strsub, strbyte, strchar, strfind, strlen, strformat =
-      string.rep, string.gsub, string.sub, string.byte, string.char,
-      string.find, string.len, string.format
+local strrep, gsub, gsubf, strsub, strbyte, strchar, strfind, strlen, strformat =
+      string.rep, gsub, gsubf, ssub, string.byte, string.char,
+      sfind, string.len, string.format
 local strmatch = string.match
 local concat = table.concat
 
@@ -137,7 +135,11 @@ local function fsub (str, pattern, repl)
   -- exists. First using find should be more efficient when most strings
   -- don't contain the pattern.
   if strfind (str, pattern) then
-    return gsub (str, pattern, repl)
+    if type(repl) == 'function' then
+      return gsubf(str, pattern, repl)
+    else
+      return gsub (str, pattern, repl)
+    end
   else
     return str
   end
@@ -287,10 +289,10 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
     buflen = buflen + 1
     buffer[buflen] = quotestring (value)
   elseif valtype == 'table' then
-    if tables[value] then
+    --[[if tables[value] then
       return exception('reference cycle', value, state, buffer, buflen)
     end
-    tables[value] = true
+    tables[value] = true]]
     level = level + 1
     local isa, n = isarray (value)
     if n == 0 and valmeta and valmeta.__jsontype == 'object' then
@@ -347,7 +349,7 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
       buflen = buflen + 1
       buffer[buflen] = "}"
     end
-    tables[value] = nil
+    --tables[value] = nil
   else
     return exception ('unsupported type', value, state, buffer, buflen,
       "type '" .. valtype .. "' is not supported by JSON.")
@@ -550,6 +552,8 @@ local function scantable (what, closechar, str, startpos, nullval, objectmeta, a
   end
 end
 
+local level = 0
+
 scanvalue = function (str, pos, nullval, objectmeta, arraymeta)
   pos = pos or 1
   pos = scanwhite (str, pos)
@@ -558,6 +562,8 @@ scanvalue = function (str, pos, nullval, objectmeta, arraymeta)
   end
   local char = strsub (str, pos, pos)
   if char == "{" then
+    level = level + 1
+
     return scantable ('object', "}", str, pos, nullval, objectmeta, arraymeta)
   elseif char == "[" then
     return scantable ('array', "]", str, pos, nullval, objectmeta, arraymeta)
@@ -567,7 +573,7 @@ scanvalue = function (str, pos, nullval, objectmeta, arraymeta)
     local pstart, pend = strfind (str, "^%-?[%d%.]+[eE]?[%+%-]?%d*", pos)
     if pstart then
       local number = str2num (strsub (str, pstart, pend))
-      if number then
+      if type(number) == 'number' then -- FIXME: change to 'if number then' when neolua bug is fixed
         return number, pend + 1
       end
     end
@@ -586,16 +592,8 @@ scanvalue = function (str, pos, nullval, objectmeta, arraymeta)
   end
 end
 
-local function optionalmetatables(...)
-  if select("#", ...) > 0 then
-    return ...
-  else
-    return {__jsontype = 'object'}, {__jsontype = 'array'}
-  end
-end
-
 function json.decode (str, pos, nullval, ...)
-  local objectmeta, arraymeta = optionalmetatables(...)
+  local objectmeta, arraymeta = {__jsontype = 'object'}, {__jsontype = 'array'}
   return scanvalue (str, pos, nullval, objectmeta, arraymeta)
 end
 
