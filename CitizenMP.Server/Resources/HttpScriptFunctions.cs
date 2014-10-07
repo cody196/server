@@ -24,7 +24,17 @@ namespace CitizenMP.Server.Resources
             {
                 foreach (var header in headers)
                 {
-                    webRequest.Headers.Add(header.Key.ToString(), header.Value.ToString());
+                    var key = header.Key.ToString();
+                    var value = header.Value.ToString();
+
+                    if (key.Equals("content-type", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        webRequest.ContentType = value;
+                    }
+                    else
+                    {
+                        webRequest.Headers.Add(key, value);
+                    }
                 }
             }
 
