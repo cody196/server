@@ -83,7 +83,7 @@ namespace CitizenMP.Server.Resources.Tasks
 
         void MessageRaised(object sender, BuildMessageEventArgs e)
         {
-            this.Log().Debug("{0} in {1}({2},{3})", e.Message, e.File, e.LineNumber, e.ColumnNumber);
+            this.Log().Debug("{0}", e.Message);
         }
 
         void WarningRaised(object sender, BuildWarningEventArgs e)
