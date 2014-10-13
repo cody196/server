@@ -23,7 +23,8 @@ namespace CitizenMP.Server.Resources.Tasks
 
             if (File.Exists(preCachePath))
             {
-                return LoadStreamCacheList(resource, null, preCachePath);
+                LoadStreamCacheList(resource, null, preCachePath);
+                return false;
             }
 
             var streamFolder = Path.Combine(resource.Path, "stream");
