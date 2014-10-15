@@ -169,7 +169,13 @@ function spawnPlayer(spawnIdx, cb)
         end
 
         -- get the spawn from the array
-        local spawn = spawnPoints[spawnIdx]
+        local spawn
+
+        if type(spawnIdx) == 'table' then
+            spawn = spawnIdx
+        else
+            spawn = spawnPoints[spawnIdx]
+        end
 
         -- validate the index
         if not spawn then
@@ -181,18 +187,21 @@ function spawnPlayer(spawnIdx, cb)
         -- freeze the local player
         freezePlayer(GetPlayerId(), true)
 
-        -- load the model for this spawn
-        while not HasModelLoaded(spawn.model) do
-            RequestModel(spawn.model)
+        -- if the spawn has a model set
+        if spawn.model then
+            -- load the model for this spawn
+            while not HasModelLoaded(spawn.model) do
+                RequestModel(spawn.model)
 
-            Wait(0)
+                Wait(0)
+            end
+
+            -- change the player model
+            ChangePlayerModel(GetPlayerId(), spawn.model)
+
+            -- release the player model
+            MarkModelAsNoLongerNeeded(spawn.model)
         end
-
-        -- change the player model
-        ChangePlayerModel(GetPlayerId(), spawn.model)
-
-        -- release the player model
-        MarkModelAsNoLongerNeeded(spawn.model)
 
         -- preload collisions for the spawnpoint
         RequestCollisionAtPosn(spawn.x, spawn.y, spawn.z)
