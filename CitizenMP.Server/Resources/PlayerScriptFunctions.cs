@@ -74,7 +74,7 @@ namespace CitizenMP.Server.Resources
 
             if (player != null)
             {
-                return (DateTime.UtcNow - player.LastSeen).TotalMilliseconds;
+                return Time.CurrentTime - player.LastSeen;
             }
 
             return 99999999;

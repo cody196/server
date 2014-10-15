@@ -14,17 +14,17 @@ namespace CitizenMP.Server.Game
     {
         private List<string> m_entries = new List<string>();
 
-        private DateTime m_startTime;
+        private long m_startTime;
 
         public RconLog()
         {
-            m_startTime = DateTime.UtcNow;
+            m_startTime = Time.CurrentTime;
         }
 
         public void Append(string str)
         {
             var jobj = JObject.Parse(str);
-            jobj["msgTime"] = (int)((DateTime.UtcNow - m_startTime).TotalSeconds);
+            jobj["msgTime"] = (int)(Time.CurrentTime - m_startTime);
 
             m_entries.Add(jobj.ToString(Formatting.None));
         }

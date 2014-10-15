@@ -29,7 +29,7 @@ namespace CitizenMP.Server
 
         public Game.NetChannel NetChannel { get; set; }
 
-        public DateTime LastSeen { get; private set; }
+        public long LastSeen { get; private set; }
 
         public bool SentData { get; set; }
 
@@ -42,7 +42,7 @@ namespace CitizenMP.Server
 
         public void Touch()
         {
-            LastSeen = DateTime.UtcNow;
+            LastSeen = Time.CurrentTime;
         }
 
         public void WriteReliableBuffer(BinaryWriter writer)

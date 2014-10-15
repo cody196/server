@@ -429,7 +429,7 @@ namespace CitizenMP.Server.Game
             }
             else
             {
-                if ((DateTime.UtcNow - m_host.LastSeen).TotalSeconds > 15)
+                if ((Time.CurrentTime - m_host.LastSeen) >= (15 * 1000))
                 {
                     allowHost = true;
                 }
@@ -891,7 +891,7 @@ namespace CitizenMP.Server.Game
         private void ProcessServerFrame()
         {
             // process client timeouts
-            var curTime = DateTime.UtcNow;
+            var curTime = Time.CurrentTime;
 
             var toRemove = new List<Client>();
 
@@ -899,7 +899,9 @@ namespace CitizenMP.Server.Game
             {
                 var timeout = (client.Value.SentData) ? 15 : 60;
 
-                if ((curTime - client.Value.LastSeen).TotalSeconds > timeout)
+                timeout *= 1000;
+
+                if ((curTime - client.Value.LastSeen) > timeout)
                 {
                     this.Log().Info("disconnected a client for timing out");
 

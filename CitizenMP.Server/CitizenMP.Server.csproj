@@ -125,6 +125,7 @@
     <Compile Include="Resources\Tasks\UpdatePackageFileTask.cs" />
     <Compile Include="Resources\Tasks\UpdateStreamListTask.cs" />
     <Compile Include="Resources\VMInitScriptFunctions.cs" />
+    <Compile Include="Time.cs" />
     <Compile Include="TokenGenerator.cs" />
     <Compile Include="Utils.cs" />
   </ItemGroup>

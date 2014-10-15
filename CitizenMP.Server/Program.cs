@@ -151,6 +151,8 @@ namespace CitizenMP.Server
 
             Logging.BaseLog.SetStripSourceFilePath();
 
+            Time.Initialize();
+
             try
             {
                 // start the program

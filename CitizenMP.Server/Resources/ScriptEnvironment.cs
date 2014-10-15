@@ -582,7 +582,7 @@ namespace CitizenMP.Server.Resources
         class ScriptTimer
         {
             public Delegate Function { get; set; }
-            public DateTime TickFrom { get; set; }
+            public long TickFrom { get; set; }
         }
 
         private List<ScriptTimer> m_timers = new List<ScriptTimer>();
@@ -590,7 +590,7 @@ namespace CitizenMP.Server.Resources
         public void Tick()
         {
             var timers = m_timers.GetRange(0, m_timers.Count);
-            var now = DateTime.UtcNow;
+            var now = Time.CurrentTime;
 
             foreach (var timer in timers)
             {
@@ -617,7 +617,7 @@ namespace CitizenMP.Server.Resources
 
         public void SetTimeout(int milliseconds, Delegate callback)
         {
-            var newSpan = DateTime.UtcNow + TimeSpan.FromMilliseconds(milliseconds);
+            var newSpan = Time.CurrentTime + milliseconds;
 
             m_timers.Add(new ScriptTimer() { TickFrom = newSpan, Function = callback });
         }
