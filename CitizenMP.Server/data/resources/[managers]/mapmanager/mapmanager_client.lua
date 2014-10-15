@@ -95,7 +95,7 @@ function parseMap(file, owningResource)
             local args = table.pack(...)
 
             table.insert(undoCallbacks[owningResource], function()
-                undocb(state, table.unpack(args))
+                undocb(state)
             end)
 
             return result
