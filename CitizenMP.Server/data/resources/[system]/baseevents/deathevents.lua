@@ -1,5 +1,6 @@
 CreateThread(function()
     local isDead = false
+    local hasBeenDead = false
 
     while true do
         Wait(0)
@@ -24,6 +25,15 @@ CreateThread(function()
                 end
             elseif not ped.isFatallyInjured then
                 isDead = false
+            end
+
+            -- check if the player has to respawn in order to trigger an event
+            if not hasBeenDead and HowLongHasNetworkPlayerBeenDeadFor(player, _r) > 0 then
+                triggerEvent('onPlayerWasted', player.serverId)
+
+                hasBeenDead = true
+            elseif hasBeenDead and HowLongHasNetworkPlayerBeenDeadFor(player, _r) <= 0 then
+                hasBeenDead = false
             end
         end
     end

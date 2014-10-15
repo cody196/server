@@ -11,3 +11,8 @@ AddEventHandler('onPlayerKilled', function(player, attacker, reason)
 
     TriggerClientEvent('onPlayerKilled', -1, player, attacker, reason)
 end)
+
+RegisterServerEvent('onPlayerWasted')
+AddEventHandler('onPlayerWasted', function(player)
+    TriggerClientEvent('onPlayerWasted', -1, source)
+end)
