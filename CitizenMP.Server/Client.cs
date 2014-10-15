@@ -17,6 +17,8 @@ namespace CitizenMP.Server
 
         public ushort NetID { get; set; }
 
+        public uint ProtocolVersion { get; set; }
+
         public int Base { get; set; }
 
         public uint OutReliableSequence { get; set; }
@@ -35,14 +37,50 @@ namespace CitizenMP.Server
 
         public Socket Socket { get; set; }
 
+        public uint FrameNumber { get; set; }
+
+        public uint LastReceivedFrame { get; set; }
+
+        public ClientFrame[] Frames { get; set; }
+
+        public int Ping { get; private set; }
+
         public Client()
         {
             OutReliableCommands = new List<OutReliableCommand>();
+            ProtocolVersion = 1;
+
+            Frames = new ClientFrame[32];
         }
 
         public void Touch()
         {
             LastSeen = Time.CurrentTime;
+        }
+
+        public void CalculatePing()
+        {
+            int pingTotal = 0, pingCount = 0;
+
+            for (int i = 0; i < Frames.Length; i++)
+            {
+                if (Frames[i].AckedTime <= 0)
+                {
+                    continue;
+                }
+
+                pingTotal += (int)(Frames[i].AckedTime - Frames[i].SentTime);
+                pingCount++;
+            }
+
+            if (pingCount == 0)
+            {
+                Ping = -1;
+            }
+            else
+            {
+                Ping = pingTotal / pingCount;
+            }
         }
 
         public void WriteReliableBuffer(BinaryWriter writer)
@@ -104,6 +142,12 @@ namespace CitizenMP.Server
             catch (SocketException)
             { }
         }
+    }
+
+    public struct ClientFrame
+    {
+        public long SentTime { get; set; }
+        public long AckedTime { get; set; }
     }
 
     public struct OutReliableCommand

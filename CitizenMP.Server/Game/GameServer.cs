@@ -14,6 +14,8 @@ namespace CitizenMP.Server.Game
 {
     class GameServer
     {
+        public const uint PROTOCOL_VERSION = 2;
+
         private Socket m_gameSocket;
 
         private Socket m_gameSocket6;
@@ -342,6 +344,19 @@ namespace CitizenMP.Server.Game
                 }
 
                 client.OutReliableAcknowledged = curReliableAck;
+            }
+
+            // read the client frame, and update ping if relevant
+            if (client.ProtocolVersion >= 2)
+            {
+                var lastReceivedFrame = reader.ReadUInt32();
+
+                if (client.LastReceivedFrame != lastReceivedFrame)
+                {
+                    client.Frames[lastReceivedFrame % client.Frames.Length].AckedTime = Time.CurrentTime;
+
+                    client.LastReceivedFrame = lastReceivedFrame;
+                }
             }
 
             // now read the actual message
@@ -916,16 +931,6 @@ namespace CitizenMP.Server.Game
                 ClientInstances.RemoveClient(client);
             }
 
-            // time for another senseless reliable?
-            var sendSenselessReliable = false;
-
-            if ((m_serverTime - m_lastSenselessReliableSent) > 5000)
-            {
-                sendSenselessReliable = true;
-
-                m_lastSenselessReliableSent = m_serverTime;
-            }
-
             // send a heartbeat?
             if (m_serverTime > m_nextHeartbeatTime)
             {
@@ -939,18 +944,12 @@ namespace CitizenMP.Server.Game
             {
                 var cl = client.Value;
 
-                if (sendSenselessReliable)
+                if (cl.NetChannel != null)
                 {
-                    if (cl.NetChannel != null)
-                    {
-                        var bytes = new byte[] { 0x12, 0x34, 0x56, 0x78 };
+                    // calculate ping
+                    client.Value.CalculatePing();
 
-                        cl.SendReliableCommand(0x1234, bytes);
-                    }
-                }
-
-                if (cl.NetChannel != null && cl.OutReliableCommands.Count > 0)
-                {
+                    // send a frame and the reliable buffer
                     lock (cl)
                     {
                         // create a new message
@@ -958,7 +957,16 @@ namespace CitizenMP.Server.Game
                         var writer = new BinaryWriter(stream);
 
                         cl.WriteReliableBuffer(writer);
-                        writer.Write(0xCA569E63);
+
+                        writer.Write(0x53FFFA3F); // 'msgFrame'
+                        writer.Write(client.Value.FrameNumber);
+
+                        client.Value.Frames[client.Value.FrameNumber % client.Value.Frames.Length].SentTime = Time.CurrentTime;
+                        client.Value.Frames[client.Value.FrameNumber % client.Value.Frames.Length].AckedTime = -1;
+
+                        client.Value.FrameNumber++;
+
+                        writer.Write(0xCA569E63); // 'msgEnd'
 
                         cl.NetChannel.Send(stream.ToArray());
                     }

@@ -54,6 +54,19 @@ namespace CitizenMP.Server.Resources
             return null;
         }
 
+        [LuaMember("GetPlayerPing")]
+        static int GetPlayerPing(int source)
+        {
+            var player = FindPlayer(source);
+
+            if (player != null)
+            {
+                return player.Ping;
+            }
+
+            return -1;
+        }
+
         [LuaMember("GetPlayerEP")]
         static string GetPlayerEP(int source)
         {
