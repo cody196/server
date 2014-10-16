@@ -80,6 +80,8 @@ namespace CitizenMP.Server.Logging
             window.Text = "CitizenFX Platform Server";
             window.Size = new Size(800 + 16, 600 + 39);
 
+            window.FormClosed += window_FormClosed;
+
             NativeWindow listBox = new NativeWindow();
             listBox.AssignHandle(CreateWindowEx(
                 WindowStylesEx.WS_EX_RIGHTSCROLLBAR,
@@ -110,6 +112,11 @@ namespace CitizenMP.Server.Logging
             };
 
             Application.Run(window);
+        }
+
+        static void window_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            Environment.Exit(0); // actually we should exit more cleanly, but meh
         }
 
         #region native win32
