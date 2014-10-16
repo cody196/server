@@ -21,8 +21,11 @@ namespace CitizenMP.Server.HTTP
 
                 var name = headers.GetByName("name");
                 var guid = headers.GetByName("guid");
-                var protocol = headers.GetByName("protocol");
 
+                string protocol = null;
+                
+                headers.TryGetByName("protocol", out protocol);
+                
                 if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(guid))
                 {
                     result["err"] = "fields missing";
