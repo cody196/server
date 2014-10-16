@@ -21,6 +21,7 @@ namespace CitizenMP.Server.HTTP
 
                 var name = headers.GetByName("name");
                 var guid = headers.GetByName("guid");
+                var protocol = headers.GetByName("protocol");
 
                 if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(guid))
                 {
@@ -29,6 +30,22 @@ namespace CitizenMP.Server.HTTP
                     return result;
                 }
 
+                if (string.IsNullOrEmpty(protocol))
+                {
+                    protocol = "1";
+                }
+
+                // check the protocol version
+                uint protocolNum;
+
+                if (!uint.TryParse(protocol, out protocolNum))
+                {
+                    result["err"] = "invalid protocol version";
+
+                    return result;
+                }
+
+                // authentication
                 if (!gameServer.Configuration.DisableAuth)
                 {
                     string authTicket;
@@ -61,6 +78,7 @@ namespace CitizenMP.Server.HTTP
                 client.Token = TokenGenerator.GenerateToken();
                 client.Name = name;
                 client.Guid = ulong.Parse(guid).ToString("x16");
+                client.ProtocolVersion = protocolNum;
                 client.Touch();
 
                 if (ClientInstances.Clients.ContainsKey(guid))
@@ -71,6 +89,7 @@ namespace CitizenMP.Server.HTTP
                 ClientInstances.AddClient(client);
 
                 result["token"] = client.Token;
+                result["protocol"] = Game.GameServer.PROTOCOL_VERSION;
 
                 return result;
             };
