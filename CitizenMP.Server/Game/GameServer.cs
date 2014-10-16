@@ -958,13 +958,16 @@ namespace CitizenMP.Server.Game
 
                         cl.WriteReliableBuffer(writer);
 
-                        writer.Write(0x53FFFA3F); // 'msgFrame'
-                        writer.Write(client.Value.FrameNumber);
+                        if (cl.ProtocolVersion >= 2)
+                        {
+                            writer.Write(0x53FFFA3F); // 'msgFrame'
+                            writer.Write(client.Value.FrameNumber);
 
-                        client.Value.Frames[client.Value.FrameNumber % client.Value.Frames.Length].SentTime = Time.CurrentTime;
-                        client.Value.Frames[client.Value.FrameNumber % client.Value.Frames.Length].AckedTime = -1;
+                            client.Value.Frames[client.Value.FrameNumber % client.Value.Frames.Length].SentTime = Time.CurrentTime;
+                            client.Value.Frames[client.Value.FrameNumber % client.Value.Frames.Length].AckedTime = -1;
 
-                        client.Value.FrameNumber++;
+                            client.Value.FrameNumber++;
+                        }
 
                         writer.Write(0xCA569E63); // 'msgEnd'
 
