@@ -131,11 +131,6 @@ namespace CitizenMP.Server
                     sb.Append(c);
             }
 
-            if (sRegEx.StartsWith("^%-"))
-            {
-                Console.WriteLine();
-            }
-
             return sb.ToString();
         } // func TranslateRegularExpression
 
@@ -182,7 +177,14 @@ namespace CitizenMP.Server
             if (plain) // plain pattern
             {
                 int iIndex = s.IndexOf(pattern, init - 1);
-                return new LuaResult(iIndex + 1, iIndex + pattern.Length);
+                if (iIndex >= 0)
+                {
+                    return new LuaResult(iIndex + 1, iIndex + pattern.Length);
+                }
+                else
+                {
+                    return new LuaResult(null);
+                }
             }
             else
             {
@@ -203,7 +205,7 @@ namespace CitizenMP.Server
                     return result;
                 }
                 else
-                    return new LuaResult(0);
+                    return new LuaResult(null);
             }
         } // func find
 
