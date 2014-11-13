@@ -1,5 +1,6 @@
 print("[GAME] Commandserv initialising...")
 
+
 local weapons = {}
 weapons["baseballbat"] = 1
 weapons["poolcue"] = 2
@@ -63,7 +64,14 @@ AddEventHandler('handleCommandEntered', function(source, fullcommand)
 	name = GetPlayerName(source)
 	--print(name .. " sent command " .. command)
 	--TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "We copy, command " .. command)
-	command = string.split(fullcommand, ' ')
+	--command = fullcommand:Split(' ')
+	local cmdParts = fullcommand:Split(' ')
+
+	local command = {}
+
+	for i = 0, cmdParts.Length-1 do
+		table.insert(command, cmdParts[i])
+	end
 
 	if(command[1] == "/commands") then TriggerClientEvent('chatMessage', source, 'Commands', { 0, 0x99, 255 }, "^3/vehicles | /veh (vehicle name) | /vehcol (colour ID) (colour ID) | /repair | /flip | /heal | /armour | /givewep | /suicide | /tp")
 
@@ -71,6 +79,12 @@ AddEventHandler('handleCommandEntered', function(source, fullcommand)
 		if command[2] == nil then TriggerClientEvent('chatMessage', source, 'Teleporter', { 0, 0x99, 255 }, "^1Invalid name. Usage: /tp (target name).")
 		else TriggerClientEvent('tpToPlayer', source, command[2])
 	end
+	elseif command[1] == "/drawcoord" then
+		if command[2] and command[3] and command[4] then
+			TriggerClientEvent('drawCoord', -1, command[2], command[3], command[4])
+		end
+	elseif command[1] == "/cleardraw" then
+		TriggerClientEvent('clearDraw', -1)
 
 	elseif(command[1] == "/vehicles") then TriggerClientEvent('chatMessage', source, 'ModdedVehicles', { 0, 0x99, 255 }, "^3Admiral | Ambulance | Annihilator | SuperGT | Faction | Infernus | Maverick | nstockade (NOOSE van) | Police | Police2 | polpatriot | Sultan | Taxi | Turismo. ^1 Do not use any CAPITAL letters in /veh.")
 
@@ -81,8 +95,8 @@ AddEventHandler('handleCommandEntered', function(source, fullcommand)
 	elseif command[1] == "/savecar" then TriggerClientEvent('sendSaveCar', source)
 
 	elseif(command[1] == "/givewep") then
-	if not weapons[command[2]] then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1That's an unknown weapon.")
-	else TriggerClientEvent('giveWeapon', source, weapons[command[2]], 50000)
+	if not weapons[command[2] ] then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1That's an unknown weapon.")
+	else TriggerClientEvent('giveWeapon', source, weapons[command[2] ], 50000)
 	end
 
 	elseif(command[1] == "/blip") then
@@ -145,7 +159,7 @@ function isNumber(str)
 	end
 end
 
-function string:split(delimiter)
+--[[function string:split(delimiter)
   local result = { }
   local from  = 1
   local delim_from, delim_to = string.find( self, delimiter, from  )
@@ -156,6 +170,6 @@ function string:split(delimiter)
   end
   table.insert( result, string.sub( self, from  ) )
   return result
-end
+end]]
 
 print("[GAME] Commandserv initialised")

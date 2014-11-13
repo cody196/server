@@ -11,6 +11,8 @@ world_asset_config 'gta5/viiv' {
     entity_sanity = true,
     static_bound_sanity = true,
     odd_wait_deadlock = true,
+	definitely_more_navigable = true,
+    bigger_paths = true,
 
     -- limits
     -- these can't be done at runtime yet, so they're static for now
