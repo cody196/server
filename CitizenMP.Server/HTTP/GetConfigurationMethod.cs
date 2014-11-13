@@ -12,22 +12,11 @@ namespace CitizenMP.Server.HTTP
 {
     static class GetConfigurationMethod
     {
-        public static Func<IHttpHeaders, IHttpContext, Task<JObject>> Get(Resources.ResourceManager resourceMgr)
+        public static Func<IHttpHeaders, IHttpContext, Task<JObject>> Get(Configuration config, Resources.ResourceManager resourceMgr)
         {
             return (headers, context) =>
             {
                 var result = new JObject();
-
-                /*var files = new JObject();
-                files["resource.rpf"] = "4B5511AA0F088F4C98C8BB56932DEF90D80E76C2";
-
-                var lovely = new JObject();
-                lovely["name"] = "lovely";
-                lovely["files"] = files;
-
-                var resources = new JArray();
-                resources.Add(lovely);*/
-
                 var resources = new JArray();
 
                 var resourceSource = resourceMgr.GetRunningResources();
@@ -76,10 +65,19 @@ namespace CitizenMP.Server.HTTP
                     resources.Add(rObject);
                 }
 
+                // add the imports, if any
+                if (config.Imports != null)
+                {
+                    var imports = new JArray();
+
+                    config.Imports.ForEach(a => imports.Add(a.ConfigURL));
+
+                    result["imports"] = imports;
+                }
+
                 result["resources"] = resources;
                 result["fileServer"] = "http://%s/files/";
 
-                //result["loadScreen"] = "http://www.google.com/";
                 result["loadScreen"] = "nui://keks/index.html";
 
                 var source = new TaskCompletionSource<JObject>();

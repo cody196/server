@@ -38,6 +38,8 @@ namespace CitizenMP.Server
 
         public string Hostname { get; set; }
 
+        public List<ImportConfiguration> Imports { get; set; }
+
         public Dictionary<string, DownloadConfiguration> Downloads { get; set; }
 
         public DownloadConfiguration GetDownloadConfiguration(string resourceName)
@@ -63,5 +65,10 @@ namespace CitizenMP.Server
         public string BaseURL { get; set; }
 
         public string UploadURL { get; set; }
+    }
+
+    public class ImportConfiguration
+    {
+        public string ConfigURL { get; set; }
     }
 }
