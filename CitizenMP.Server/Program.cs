@@ -97,6 +97,10 @@ namespace CitizenMP.Server
                     }
                 }
             }
+            else
+            {
+                this.Log().Warn("No PreParseResources defined. This usually means you're using an outdated configuration file. Please consider this.");
+            }
 
             // scan resources
             resManager.ScanResources("resources/");
