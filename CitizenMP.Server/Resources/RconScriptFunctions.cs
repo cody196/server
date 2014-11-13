@@ -22,16 +22,16 @@ namespace CitizenMP.Server.Resources
         static void RconLog_f(LuaTable table)
         {
             var luaEnvironment = ScriptEnvironment.CurrentEnvironment.LuaEnvironment;
-            /*var packer = (Func<LuaTable, string>)((LuaTable)luaEnvironment["json"])["encode"];
+            var packer = (Func<object, object, LuaResult>)((LuaTable)luaEnvironment["json"])["encode"];
 
-            var str = packer(table);
+            var str = packer(table, null);
 
             var rconLog = ScriptEnvironment.CurrentEnvironment.Resource.Manager.RconLog;
 
             if (rconLog != null)
             {
-                rconLog.Append(str);
-            }*/
+                rconLog.Append(str.Values[0].ToString());
+            }
         }
     }
 }
