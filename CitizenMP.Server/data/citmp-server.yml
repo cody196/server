@@ -16,11 +16,12 @@ AutoStartResources:
     #- play-midpa
     - obituary
     - obituary-deaths
-    - race-test
-    #- viiv-core
-    #- viiv-additional
-    #- viiv-data
-    #- viiv-tdd
+    #- race-test
+    #- ocw
+    #- play-midpa
+    #- lovelier
+    - play-viiv
+    - viiv-tdd
 
 RconPassword: lovely
 
@@ -30,8 +31,12 @@ PlatformServer: iv-platform.prod.citizen.re
 
 ScriptDebug: true
 
+# enjoy viiv
+Imports:
+    - ConfigURL: http://cache.lilycove.hacks.re/exports.json
+
 # the following is an example for resource download offloading
 #Downloads:
 #    all:
-#        BaseURL: http://localhost/dotty/dots/
-#        UploadURL: ftps://lovely:dotty@localhost/dots/
+#        BaseURL: http://cache.lilycove.hacks.re/
+#        UploadURL: ftp://citizen:city@localhost/

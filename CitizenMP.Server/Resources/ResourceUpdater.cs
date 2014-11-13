@@ -8,17 +8,21 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
+using Newtonsoft.Json.Linq;
+
 namespace CitizenMP.Server.Resources
 {
     class ResourceUpdater
     {
         private Resource m_resource;
         private string m_uploadURL;
+        private string m_baseURL;
 
-        public ResourceUpdater(Resource resource, string uploadURL)
+        public ResourceUpdater(Resource resource, DownloadConfiguration config)
         {
             m_resource = resource;
-            m_uploadURL = uploadURL;
+            m_uploadURL = config.UploadURL;
+            m_baseURL = config.BaseURL;
         }
 
         public async Task SyncResource()
@@ -71,7 +75,7 @@ namespace CitizenMP.Server.Resources
 
                     return n;
                 };
-                
+
                 try
                 {
                     var listing = await Task.Factory.FromAsync<string, FtpListOption, FtpListItem[]>(client.BeginGetListing, client.EndGetListing, url.AbsolutePath + "/" + m_resource.Name, FtpListOption.Modify, null);
@@ -111,6 +115,25 @@ namespace CitizenMP.Server.Resources
 
                         this.Log().Info("Uploaded {0}/{1}\n", m_resource.Name, file.Name);
                     }
+                }
+
+                // write configuration to a file on the server
+                {
+                    var outStream = await Task.Factory.FromAsync<string, FtpDataType, Stream>(client.BeginOpenWrite, client.EndOpenWrite, url.AbsolutePath + "/" + m_resource.Name + ".json", FtpDataType.ASCII, null);
+                    var outWriter = new StreamWriter(new BufferedStream(outStream));
+
+                    var config = new JObject();
+                    config["fileServer"] = m_baseURL;
+
+                    var resources = new JArray();
+                    new[] { m_resource }.GenerateConfiguration(resources);
+
+                    config["resources"] = resources;
+
+                    await outWriter.WriteAsync(config.ToString(Newtonsoft.Json.Formatting.None));
+                    await outWriter.FlushAsync();
+
+                    outWriter.Close();
                 }
 
                 this.Log().Info("Done updating {0}.", m_resource.Name);

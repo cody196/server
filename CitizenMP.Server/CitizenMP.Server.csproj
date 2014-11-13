@@ -116,6 +116,7 @@
     <Compile Include="Resources\PlayerScriptFunctions.cs" />
     <Compile Include="Resources\RconScriptFunctions.cs" />
     <Compile Include="Resources\Resource.cs" />
+    <Compile Include="Resources\ResourceExtensions.cs" />
     <Compile Include="Resources\ResourceManager.cs" />
     <Compile Include="Resources\ResourceScriptFunctions.cs" />
     <Compile Include="Resources\ResourceUpdater.cs" />

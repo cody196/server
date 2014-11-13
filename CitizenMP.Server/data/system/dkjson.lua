@@ -706,8 +706,4 @@ function json.use_lpeg ()
   return json -- so you can get the module using json = require "dkjson".use_lpeg()
 end
 
-if always_try_using_lpeg then
-  pcall (json.use_lpeg)
-end
-
 return json

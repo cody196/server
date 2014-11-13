@@ -89,7 +89,7 @@ namespace CitizenMP.Server.Resources.Tasks
                 // synchronize the files with a download server
                 if (resource.DownloadConfiguration != null && !string.IsNullOrWhiteSpace(resource.DownloadConfiguration.UploadURL))
                 {
-                    var updater = new ResourceUpdater(resource, resource.DownloadConfiguration.UploadURL);
+                    var updater = new ResourceUpdater(resource, resource.DownloadConfiguration);
 
                     resource.IsSynchronizing = true;
 

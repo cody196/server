@@ -8,6 +8,8 @@ using uhttpsharp;
 using uhttpsharp.Headers;
 using Newtonsoft.Json.Linq;
 
+using CitizenMP.Server.Resources;
+
 namespace CitizenMP.Server.HTTP
 {
     static class GetConfigurationMethod
@@ -28,30 +30,23 @@ namespace CitizenMP.Server.HTTP
 
                     resourceSource = resourceSource.Where(r => resourceNames.Contains(r.Name));
                 }
-
-                foreach (var resource in resourceSource)
+                else
                 {
-                    var files = new JObject();
-                    files["resource.rpf"] = resource.ClientPackageHash;
-
-                    var streamFiles = new JObject();
-
-                    foreach (var entry in resource.StreamEntries)
+                    // add the imports, if any
+                    if (config.Imports != null)
                     {
-                        var obj = new JObject();
-                        obj["hash"] = entry.Value.HashString;
-                        obj["rscFlags"] = entry.Value.RscFlags;
-                        obj["rscVersion"] = entry.Value.RscVersion;
-                        obj["size"] = entry.Value.Size;
+                        var imports = new JArray();
 
-                        streamFiles[entry.Value.BaseName] = obj;
+                        config.Imports.ForEach(a => imports.Add(a.ConfigURL));
+
+                        result["imports"] = imports;
                     }
+                }
 
-                    var rObject = new JObject();
-                    rObject["name"] = resource.Name;
-                    rObject["files"] = files;
-                    rObject["streamFiles"] = streamFiles;
-
+                // generate configuration with our filter function
+                resourceSource.GenerateConfiguration(resources, (resource, rObject) =>
+                {
+                    // get download configuration for this resource
                     var configEntry = resourceMgr.Configuration.GetDownloadConfiguration(resource.Name);
 
                     if (configEntry != null)
@@ -61,19 +56,7 @@ namespace CitizenMP.Server.HTTP
                             rObject["fileServer"] = configEntry.BaseURL;
                         }
                     }
-
-                    resources.Add(rObject);
-                }
-
-                // add the imports, if any
-                if (config.Imports != null)
-                {
-                    var imports = new JArray();
-
-                    config.Imports.ForEach(a => imports.Add(a.ConfigURL));
-
-                    result["imports"] = imports;
-                }
+                });
 
                 result["resources"] = resources;
                 result["fileServer"] = "http://%s/files/";

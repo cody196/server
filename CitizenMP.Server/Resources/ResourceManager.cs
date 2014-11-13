@@ -199,7 +199,7 @@ namespace CitizenMP.Server.Resources
 
                         if (downloadConfig != null && !string.IsNullOrWhiteSpace(downloadConfig.UploadURL))
                         {
-                            var syncProvider = new ResourceUpdater(resource.Value, downloadConfig.UploadURL);
+                            var syncProvider = new ResourceUpdater(resource.Value, downloadConfig);
 
                             await syncProvider.SyncResource();
                         }

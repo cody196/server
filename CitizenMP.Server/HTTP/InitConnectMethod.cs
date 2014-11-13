@@ -13,7 +13,7 @@ namespace CitizenMP.Server.HTTP
 {
     static class InitConnectMethod
     {
-        public static Func<IHttpHeaders, IHttpContext, Task<JObject>> Get(Game.GameServer gameServer)
+        public static Func<IHttpHeaders, IHttpContext, Task<JObject>> Get(Configuration config, Game.GameServer gameServer)
         {
             return async (headers, context) =>
             {
@@ -46,6 +46,16 @@ namespace CitizenMP.Server.HTTP
                     result["err"] = "invalid protocol version";
 
                     return result;
+                }
+
+                if (config.Imports != null && config.Imports.Count > 0)
+                {
+                    if (protocolNum < 2)
+                    {
+                        result["err"] = "Your client is too old to support imported resources. Please update to a cleanliness client or higher.";
+
+                        return result;
+                    }
                 }
 
                 // authentication
