@@ -133,6 +133,18 @@ namespace CitizenMP.Server.Resources.Tasks
                 newEntry.RscVersion = obj.Value<uint>("RscVersion");
                 newEntry.Size = obj.Value<uint>("Size");
 
+                // viiv hacks
+                if (newEntry.BaseName.Contains(".wpl"))
+                {
+                    if (newEntry.BaseName.Contains("ktown_stream") || newEntry.BaseName.Contains("venice_stream") || newEntry.BaseName.Contains("santamon_stream") ||
+                        newEntry.BaseName.Contains("beverly_stream") || newEntry.BaseName.Contains("sanpedro_stream") || newEntry.BaseName.Contains("airport_stream") ||
+                        newEntry.BaseName.Contains("downtown_stream") || newEntry.BaseName.Contains("hollywood_stream") || newEntry.BaseName.Contains("scentral_stream") ||
+                        newEntry.BaseName.Contains("indust_stream") || newEntry.BaseName.Contains("port_stream"))
+                    {
+                        continue;
+                    }
+                }
+
                 cacheEntries.Add(obj.Value<string>("BaseName"), newEntry);
             }
 
