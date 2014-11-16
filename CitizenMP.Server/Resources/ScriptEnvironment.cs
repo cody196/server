@@ -172,18 +172,81 @@ namespace CitizenMP.Server.Resources
 
                 foreach (var func in ms_luaFunctions)
                 {
-                    m_luaEnvironment[func.Key] = Delegate.CreateDelegate
+                    //m_luaEnvironment[func.Key] = Delegate.CreateDelegate
+                    var parameters = func.Value.GetParameters()
+                                    .Select(p => p.ParameterType)
+                                    .Concat(new Type[] { func.Value.ReturnType })
+                                    .ToArray();
+
+                    var delegType = Expression.GetDelegateType
                     (
-                        Expression.GetDelegateType
-                        (
-                            func.Value.GetParameters()
-                                .Select(p => p.ParameterType)
-                                .Concat(new Type[] { func.Value.ReturnType })
-                                .ToArray()
-                        ),
+                        parameters
+                    );
+
+                    var deleg = Delegate.CreateDelegate
+                    (
+                        delegType,
                         null,
                         func.Value
                     );
+
+                    var expParameters = parameters.Take(parameters.Count() - 1).Select(a => Expression.Parameter(a)).ToArray();
+
+                    var pushedEnvironment = Expression.Variable(typeof(PushedEnvironment));
+
+                    Expression<Func<PushedEnvironment>> preFunc = () => PushEnvironment(this);
+                    Expression<Action<PushedEnvironment>> postFunc = env => env.PopEnvironment();
+
+                    Expression body;
+
+                    if (func.Value.ReturnType.Name != "Void")
+                    {
+                        var retval = Expression.Variable(func.Value.ReturnType);
+
+                        body = Expression.Block
+                        (
+                            func.Value.ReturnType,
+                            new[] { retval, pushedEnvironment },
+
+                            Expression.Assign
+                            (
+                                pushedEnvironment,
+                                Expression.Invoke(preFunc)
+                            ),
+
+                            Expression.Assign
+                            (
+                                retval,
+                                Expression.Call(func.Value, expParameters)
+                            ),
+
+                            Expression.Invoke(postFunc, pushedEnvironment),
+
+                            retval
+                        );
+                    }
+                    else
+                    {
+                        body = Expression.Block
+                        (
+                            func.Value.ReturnType,
+                            new[] { pushedEnvironment },
+
+                            Expression.Assign
+                            (
+                                pushedEnvironment,
+                                Expression.Invoke(preFunc)
+                            ),
+
+                            Expression.Call(func.Value, expParameters),
+
+                            Expression.Invoke(postFunc, pushedEnvironment)
+                        );
+                    }
+
+                    var lambda = Expression.Lambda(delegType, body, expParameters);
+
+                    m_luaEnvironment[func.Key] = lambda.Compile();
                 }
 
                 InitHandler = null;

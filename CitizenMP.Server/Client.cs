@@ -135,6 +135,11 @@ namespace CitizenMP.Server
                 this.Log().Error("THIS IS BAD");
             }
 
+            if (Socket == null)
+            {
+                return;
+            }
+
             try
             {
                 Socket.SendTo(buffer, RemoteEP);
