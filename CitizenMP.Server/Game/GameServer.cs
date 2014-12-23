@@ -975,6 +975,13 @@ namespace CitizenMP.Server.Game
                     }
                 }
             }
+
+            var elapsedTime = Time.CurrentTime - curTime;
+
+            if (elapsedTime > 25)
+            {
+                this.Log().Info("Frame time warning: server frame took {0} msec.", elapsedTime);
+            }
         }
     }
 }
