@@ -28,7 +28,7 @@ namespace CitizenMP.Server.HTTP
                 
                 if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(guid))
                 {
-                    result["err"] = "fields missing";
+                    result["error"] = "fields missing";
 
                     return result;
                 }
@@ -43,7 +43,7 @@ namespace CitizenMP.Server.HTTP
 
                 if (!uint.TryParse(protocol, out protocolNum))
                 {
-                    result["err"] = "invalid protocol version";
+                    result["error"] = "invalid protocol version";
 
                     return result;
                 }
@@ -52,7 +52,7 @@ namespace CitizenMP.Server.HTTP
                 {
                     if (protocolNum < 2)
                     {
-                        result["err"] = "Your client is too old to support imported resources. Please update to a cleanliness client or higher.";
+                        result["error"] = "Your client is too old to support imported resources. Please update to a cleanliness client or higher.";
 
                         return result;
                     }
