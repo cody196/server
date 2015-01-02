@@ -1,9 +1,6 @@
-client_scripts {
-    'commandclient.lua',
-    'gameclient.lua'
-}
+description 'Gamemode from Dutchi.'
 
-server_scripts {
-    'commandserv.lua',
-    'gameserv.lua'
-}
+client_script 'gameclient.lua'
+client_script 'commandclient.lua'
+server_script 'gameserv.lua'
+server_script 'commandserv.lua'

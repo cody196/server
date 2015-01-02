@@ -1,15 +1,68 @@
---Server commands
+--Client event handler, usually for commands
+
 AddEventHandler('giveWeapon', function(weapon, ammo)
 GiveWeaponToChar(GetPlayerPed(), weapon, ammo)
 end)
 
+AddEventHandler('kickPlayer', function(player)
+  p = GetPObjFromName(player)
+  if not IsNetworkPlayerActive(p) or not IsThisMachineTheServer() then
+    return
+  end
+  NetworkKickPlayer(p)
+  ShowText("~g~Kicking player ~r~" .. GetPlayerName(p))
+end)
+
+AddEventHandler('playAnimStuff', function(animationid, animationset, speed, loop, x, y, z, ms)
+  CreateThread(function()
+    RequestAnims(animationset)
+    while not HaveAnimsLoaded(animationset) do Wait(0) end
+    TaskPlayAnimNonInterruptable(GetPlayerPed(), animationid, animationset, speed, loop, x, y, z, -1)
+  end)
+end)
+
+AddEventHandler('createCheckpoint', function()
+  pos = table.pack(GetCharCoordinates(GetPlayerPed(), _f, _f, _f))
+  CreateCheckpoint(3, pos[1]+6, pos[2], pos[3], pos[1], pos[2]+10, pos[3], 1.0)
+  ShowText("Checkpoint created.")
+  end)
+
+AddEventHandler('hudOff', function()
+  DisplayAmmo(false)
+  DisplayCash(false)
+  DisplayHud(false)
+  DisplayRadar(false)
+  end)
+  
+AddEventHandler('hudOn', function()
+  DisplayAmmo(true)
+  DisplayCash(true)
+  DisplayHud(true)
+  DisplayRadar(true)
+  end)
+
+AddEventHandler('playAudioStuff', function(audio)
+  PlayAudioEvent(audio)
+  end)
+
 function GetIDFromName(name)
-  for i = 0,31 do
-    if(string.lower(GetPlayerName(i)) == string.lower(name)) then
+  local players = GetPlayers()
+  for _, i in ipairs(players) do
+    if(string.lower(i.name) == string.lower(name)) then
+      return i.serverId
+    end
+  end
+  return nil
+end
+
+function GetPObjFromName(name)
+  local players = GetPlayers()
+  for _, i in ipairs(players) do
+    if(string.lower(i.name) == string.lower(name)) then
       return i
     end
   end
-  return 255
+  return nil
 end
 
 function ShowText(text, timeout)
@@ -26,24 +79,43 @@ end)
 
 AddEventHandler('tpToPlayer', function(nameorid)
   local target = 255
-  if(isNumber(nameorid) and IsNetworkPlayerActive(tonumber(nameorid))) then target = tonumber(nameorid)
-  else target = GetIDFromName(nameorid)
+  if(isNumber(nameorid) and GetPlayerByServerId(tonumber(nameorid)) ~= nil) then target = GetPlayerByServerId(tonumber(nameorid))
+  elseif(GetIDFromName(nameorid) ~= nil) then target = GetPlayerByServerId(GetIDFromName(nameorid))
   end
 
   if(target == 255) then
     ShowText("~r~Invalid player name/ID.")
     return
   end
-  if(target == GetPlayerId(_r)) then
+  if(target.name == GetPlayerName(GetPlayerId(), _s)) then
     ShowText("~r~You can't teleport to yourself.")
     return
+    end
+  if(IsCharInAnyCar(target.ped)) then
+    if(IsCharInAnyCar(GetPlayerPed()) and GetCarCharIsUsing(target.ped, _i) == GetCarCharIsUsing(GetPlayerPed(), _i)) then
+    ShowText("~r~You can't teleport to yourself.")
+    return
+    end
+    if(GetMaximumNumberOfPassengers(GetCarCharIsUsing(target.ped, _i), _i) == GetNumberOfPassengers(GetCarCharIsUsing(target.ped, _i), _i)) then
+      ShowText("~r~There's no more free seats in " .. target.name .. "'s vehicle! ~g~Warping to the vehicle.")
+      return TeleportToChar(target.ped)
+    end
+    WarpCharIntoCarAsPassenger(GetPlayerPed(), GetCarCharIsUsing(target.ped, _i))
+    return ShowText("~g~You've successfully teleported into ~y~" .. target.name .. "~g~'s vehicle.")
   end
-  pos = table.pack(GetCharCoordinates(GetPlayerChar(target, _i), _f, _f, _f))
-  table.insert(pos, GetCharHeading(GetPlayerChar(target, _i), _f))
+  TeleportToChar(target.ped)
+  ShowText("~g~You've successfully teleported to ~y~" .. target.name .. "~g~.")
+end)
+
+function TeleportToChar(char)
+  pos = table.pack(GetCharCoordinates(char, _f, _f, _f))
+  table.insert(pos, GetCharHeading(char, _f))
+  if(IsCharInAnyCar(GetPlayerPed())) then
+    WarpCharFromCarToCoord(GetPlayerPed(), pos[1], pos[2], pos[3])
+  end
   SetCharCoordinatesNoOffset(GetPlayerPed(), pos[1], pos[2], pos[3])
   SetCharHeading(GetPlayerPed(), pos[4])
-  ShowText("~g~You've successfully teleported to ~y~" .. GetPlayerName(target) .. "~g~.")
-end)
+end
 
 function round(num, idp)
   local mult = 10^(idp or 0)
@@ -52,7 +124,8 @@ end
 
 AddEventHandler('sendPos', function()
   pos = table.pack(GetCharCoordinates(GetPlayerPed(), _f, _f, _f))
-  TriggerServerEvent('savePos', round(pos[1], 5), round(pos[2], 5), round(pos[3], 5))
+  table.insert(pos, GetCharHeading(GetPlayerPed(), _f))
+  TriggerServerEvent('savePos', round(pos[1], 5), round(pos[2], 5), round(pos[3], 5), pos[4])
   TriggerEvent('createBlip', 63, 2)
 end)
 
@@ -74,7 +147,7 @@ AddEventHandler('changeCarColor', function(col1, col2)
 	return ShowText("~r~You are not in any vehicle!")
 	end
 	ChangeCarColour(GetCarCharIsUsing(GetPlayerPed(), _i), tonumber(col1), tonumber(col2))
-ShowText("~g~You have set your vehicles' colour.")
+	ShowText("~g~You have set your vehicles' colour.")
 end)
 
 AddEventHandler('setWeather', function(weatherid)
@@ -83,6 +156,11 @@ end)
 
 AddEventHandler('setTime', function(hour)
 SetTimeOfDay(hour)
+end)
+
+AddEventHandler('setPos', function(x, y, z)
+  ShowText("~g~Warping to server sent coordinates ~y~" .. x .. " " .. y .. " " .. z .. " ~g~.")
+  SetCharCoordinatesNoOffset(GetPlayerPed(), x, y, z)
 end)
 
 AddEventHandler('setHealth', function(amount)
@@ -124,6 +202,15 @@ AddEventHandler('takeHealth', function(amount)
 SetCharHealth(GetPlayerPed(), GetCharHealth(GetPlayerPed(), _i)-amount)
 end)
 
+AddEventHandler('cleanYourCar', function()
+  if(not IsCharInAnyCar(GetPlayerPed())) then 
+  return ShowText("~r~You are not in any vehicle!")
+  end
+  SetVehicleDirtLevel(GetCarCharIsUsing(GetPlayerPed(), _i), 0.0)
+  WashVehicleTextures(GetCarCharIsUsing(GetPlayerPed(), _i), 255)
+  ShowText("~g~You've successfully cleaned your vehicle.")
+end)
+
 AddEventHandler('kill', function(amount)
 SetCharHealth(GetPlayerPed(), 0)
 ShowText("~y~You have committed suicide.")
@@ -140,7 +227,7 @@ AddEventHandler('createCarAtPlayerPos', function(modelname)
     table.insert(pos, GetCharHeading(GetPlayerPed(), _f))
     CreateNewCar(pos[1], pos[2], pos[3], pos[4], GetHashKey(modelname), true)
 	ShowText("~g~You've spawned the ~y~" .. modelname .. "~g~.")
-  else TriggerEvent('chatMessage', 'CarSpawner', { 0, 0x99, 255 }, "^1That's an unknown vehicle. Usage: /veh (vehicle name).")
+  else TriggerEvent('chatMessage', '', { 0, 0x99, 255 }, "^1That's an unknown vehicle. Usage: /veh (vehicle name).")
   end
 end)
 
@@ -148,14 +235,34 @@ function CreateNewCar(x, y, z, heading, model, throwin)
   CreateThread(function()
   RequestModel(model)
   while not HasModelLoaded(model) do Wait(0) end
-  local car = CreateCar(model, pos[1], pos[2], pos[3], _i, true)
+  local car = CreateCar(model, x, y, z, _i, true)
   SetCarHeading(car, heading)
   SetCarOnGroundProperly(car)
-  MarkModelAsNoLongerNeeded(model)
+  SetVehicleDirtLevel(car, 0.0)
+  WashVehicleTextures(car, 255)
   if(throwin == true) then
     WarpCharIntoCar(GetPlayerPed(), car)
   end
+  MarkModelAsNoLongerNeeded(model)
+  MarkCarAsNoLongerNeeded(car)
   end)
+end
+
+function IsPlayerNearCoords(x, y, z, radius)
+	local pos = table.pack(GetCharCoordinates(GetPlayerPed(), _f, _f, _f))
+	local dist = GetDistanceBetweenCoords3D(x, y, z, pos[1], pos[2], pos[3], _f);
+	if(dist < radius) then return true
+	else return false
+	end
+end
+
+function IsPlayerNearChar(char, radius)
+	local pos = table.pack(GetCharCoordinates(GetPlayerPed(), _f, _f, _f))
+	local pos2 = table.pack(GetCharCoordinates(char, _f, _f, _f))
+	local dist = GetDistanceBetweenCoords3D(pos2[1], pos2[2], pos2[3], pos[1], pos[2], pos[3], _f);
+	if(dist <= radius) then return true
+	else return false
+	end
 end
 
 function isNumber(str)

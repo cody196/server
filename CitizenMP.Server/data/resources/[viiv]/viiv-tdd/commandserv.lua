@@ -1,6 +1,5 @@
 print("[GAME] Commandserv initialising...")
 
-
 local weapons = {}
 weapons["baseballbat"] = 1
 weapons["poolcue"] = 2
@@ -25,10 +24,10 @@ weapons["rocketlauncher"] = 18
 --commands
 
 RegisterServerEvent('savePos')
-	AddEventHandler('savePos', function(x, y, z)
+	AddEventHandler('savePos', function(x, y, z, heading)
 	local f,err = io.open("pos.txt","a")
 	if not f then return print(err) end
-	f:write(tonumber(x) .. ", " .. tonumber(y) .. ", " .. tonumber(z) .. "\\n")
+	f:write(tonumber(x) .. ", " .. tonumber(y) .. ", " .. tonumber(z) .. " heading " .. heading .. "\n")
 	f:close()
 end)
 
@@ -48,94 +47,111 @@ RegisterServerEvent('saveRandomPickup')
 	f:close()
 end)
 
---Chat/command stuff
+--The command handling
+
 AddEventHandler('chatMessage', function(source, name, message)
 	if(string.len(message) == 0) then
 		CancelEvent();
 	end
 	if(string.sub(message, 1, 1) == "/" and string.len(message) >= 2) then
-		TriggerEvent('handleCommandEntered', source, message);
+		TriggerEvent('commandEntered', source, message);
 		CancelEvent();
 	end
 end)
 
-RegisterServerEvent('handleCommandEntered')
-AddEventHandler('handleCommandEntered', function(source, fullcommand)
+RegisterServerEvent('commandEntered')
+AddEventHandler('commandEntered', function(source, fullcommand)
 	name = GetPlayerName(source)
-	--print(name .. " sent command " .. command)
-	--TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "We copy, command " .. command)
-	--command = fullcommand:Split(' ')
-	local cmdParts = fullcommand:Split(' ')
-
-	local command = {}
-
-	for i = 0, cmdParts.Length-1 do
-		table.insert(command, cmdParts[i])
-	end
-
-	if(command[1] == "/commands") then TriggerClientEvent('chatMessage', source, 'Commands', { 0, 0x99, 255 }, "^3/vehicles | /veh (vehicle name) | /vehcol (colour ID) (colour ID) | /repair | /flip | /heal | /armour | /givewep | /suicide | /tp")
+	command = stringsplit(fullcommand, ' ')
+	print(name .. " entered command " .. fullcommand)
+	if(command[1] == "/commands") then TriggerClientEvent('chatMessage', source, '', { 0, 0x99, 255 }, "^6Commands: ^3/moddedvehicles | /veh ^7(vehicle name)^3 | /vehcol ^7(colour ID) (colour ID)^3 | /repair | /flip | /fix | /clean | /heal | /armour | /givewep ^7(weapon name)^3 | /suicide | /tp ^7(target player ID/name)^3 | /hudoff | /hudon")
 
 	elseif command[1] == "/goto" or command[1] == "/tp" then
-		if command[2] == nil then TriggerClientEvent('chatMessage', source, 'Teleporter', { 0, 0x99, 255 }, "^1Invalid name. Usage: /tp (target name).")
+		if command[2] == nil then TriggerClientEvent('chatMessage', source, '', { 0, 0x99, 255 }, "^1Invalid name. Usage: /tp (target name).")
 		else TriggerClientEvent('tpToPlayer', source, command[2])
 	end
-	elseif command[1] == "/drawcoord" then
-		if command[2] and command[3] and command[4] then
-			TriggerClientEvent('drawCoord', -1, command[2], command[3], command[4])
-		end
-	elseif command[1] == "/cleardraw" then
-		TriggerClientEvent('clearDraw', -1)
 
-	elseif(command[1] == "/vehicles") then TriggerClientEvent('chatMessage', source, 'ModdedVehicles', { 0, 0x99, 255 }, "^3Admiral | Ambulance | Annihilator | SuperGT | Faction | Infernus | Maverick | nstockade (NOOSE van) | Police | Police2 | polpatriot | Sultan | Taxi | Turismo. ^1 Do not use any CAPITAL letters in /veh.")
-
-	elseif command[1] == "/giverpg" then TriggerClientEvent('giveWeapon', source, 18, 7)
-
-	elseif command[1] == "/pos" or command[1] == "/savepos" then TriggerClientEvent('sendPos', source)
-
-	elseif command[1] == "/savecar" then TriggerClientEvent('sendSaveCar', source)
-
+	elseif(command[1] == "/race") then TriggerClientEvent('startRace', source)
+	
+	elseif(command[1] == "/moddedvehicles") then TriggerClientEvent('chatMessage', source, 'ModdedVehicles', { 0, 0x99, 255 }, "^3Admiral | Ambulance | Annihilator | SuperGT | Faction | Infernus | Maverick | nstockade (NOOSE van) | Police | Police2 | polpatriot | Sultan | Taxi | Turismo.")
+	
 	elseif(command[1] == "/givewep") then
-	if not weapons[command[2] ] then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1That's an unknown weapon.")
-	else TriggerClientEvent('giveWeapon', source, weapons[command[2] ], 50000)
+		if not weapons[command[2]] then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1That's an unknown weapon.")
+		else TriggerClientEvent('giveWeapon', source, weapons[command[2]], 50000)
 	end
-
-	elseif(command[1] == "/blip") then
-	if command[2] == nil or command[3] == nil or isNumber(command[2]) == false or isNumber(command[3]) == false then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1Wrong syntax.")
-	else TriggerClientEvent('createBlip', source, command[2], command[3])
-	end
-
-	elseif(command[1] == "/weather") then
-	if tonumber(command[2]) < 0 or tonumber(command[2]) > 10 then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1That's an unknown weather ID.")
-	else TriggerClientEvent('setWeather', source, command[2])
-	end
-
-	elseif(command[1] == "/time") then
-	if isNumber(command[2]) == false then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1Invalid hour of day.")
-	else TriggerClientEvent('setTime', source, command[2])
-	end
-
+	
 	elseif(command[1] == "/veh") then
-	if command[2] == nil or string.len(command[2]) < 1 or string.len(command[2]) > 30 then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1That's an unknown vehicle.")
-	else TriggerClientEvent('createCarAtPlayerPos', source, command[2])
+		if command[2] == nil or string.len(command[2]) < 1 or string.len(command[2]) > 30 then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1That's an unknown vehicle.")
+		else TriggerClientEvent('createCarAtPlayerPos', source, command[2])
 	end
-
+	
 	elseif(command[1] == "/vehcol") then
-	if command[2] == nil or command[3] == nil or isNumber(command[2]) == false or isNumber(command[3]) == false then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1Invalid carcolours. Usage: /vehcol (id1) (id2).")
-	else TriggerClientEvent('changeCarColor', source, command[2], command[3])
+		if command[2] == nil or command[3] == nil or isNumber(command[2]) == false or isNumber(command[3]) == false then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1Invalid carcolours. Usage: /vehcol (id1) (id2).")
+		else TriggerClientEvent('changeCarColor', source, command[2], command[3])
 	end
+	
+	elseif(command[1] == "/hudoff") then TriggerClientEvent('hudOff', source)
+	elseif(command[1] == "/hudon") then TriggerClientEvent('hudOn', source)
 
+	elseif(command[1] == "/ped" and command[2] ~= nil) then TriggerClientEvent('createPed', source, command[2])
+	
 	elseif command[1] == "/heal" then TriggerClientEvent('setHealth', source, 200)
 
 	elseif command[1] == "/armor" or command[1] == "/armour" then TriggerClientEvent('giveArmour', source, 200)
 
 	elseif command[1] == "/flip" then TriggerClientEvent('flipVehicle', source)
-
+	
 	elseif command[1] == "/fix" or command[1] == "/repair" then TriggerClientEvent('fixVehicle', source)
+	
+	elseif command[1] == "/clean" or command[1] == "/carwash" then TriggerClientEvent('cleanYourCar', source)
 
 	elseif command[1] == "/kill" or command[1] == "/suicide" then TriggerClientEvent('kill', source)
 
-	elseif command[1] == "/godmode" then TriggerClientEvent('godmode', source)
+	elseif command[1] == "/host" then TriggerClientEvent('showScreenMsg', source, "~b~The current host is ~r~" .. GetPlayerName(GetHostId()))
+----------------------------------------------------------------------------------------------------------------------------------------
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/anim") then TriggerClientEvent('playAnimStuff', source, command[2], command[3], command[4], false, 0, 0, 0, 5000)
 
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/checkpoint") then TriggerClientEvent('createCheckpoint', source)
+
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/pos") then TriggerClientEvent('setPos', source, string.sub(command[2], 1, string.len(command[2])-1), string.sub(command[3], 1, string.len(command[3])-1), string.sub(command[4], 1, string.len(command[4])-1))
+
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/audio") then TriggerClientEvent('playAudioStuff', source, command[2])
+
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/giverpg") then TriggerClientEvent('giveWeapon', source, 18, 7)
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/godmode") then TriggerClientEvent('godmode', source)
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/savecar") then TriggerClientEvent('sendSaveCar', source)
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/pos" or command[1] == "/savepos") then TriggerClientEvent('sendPos', source)
+
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/kick") then
+		if(command[2] == nil) then return TriggerClientEvent('showScreenMsg', source, '', { 0, 0x99, 255 }, "^1Unknown playername. Usage: /kick (playername).")
+		else TriggerClientEvent('kickPlayer', GetHostId(), command[2])
+	end
+
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/blip") then
+		if(command[2] == nil or command[3] == nil or isNumber(command[2]) == false or isNumber(command[3]) == false) then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1Wrong syntax.")
+		else TriggerClientEvent('createBlip', source, command[2], command[3])
+	end
+
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/weather") then
+		if(tonumber(command[2]) < 0 or tonumber(command[2]) > 10) then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1That's an unknown weather ID.")
+		else TriggerClientEvent('setWeather', GetHostId(), command[2])
+	end
+	
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/time") then
+		if(isNumber(command[2]) == false) then TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1Invalid hour of day.")
+		else TriggerClientEvent('setTime', GetHostId(), command[2])
+	end
+
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/msgtoeveryone") then
+		if(command[2] == nil or string.len(command[2]) < 2) then return TriggerClientEvent('showScreenMsg', source, "~r~No message specified. Usage: ~y~/msgtoeveryone (message)")
+		else TriggerClientEvent('showScreenMsg', -1, "~r~" .. string.sub(fullcommand, string.len(command[1]) + 1))
+	end
+
+	elseif(name == "TheDeadlyDutchi" and command[1] == "/chattoeveryone") then
+		if(command[2] == nil or string.len(command[2]) < 2) then return TriggerClientEvent('showScreenMsg', source, "~r~No message specified. Usage: ~y~/chattoeveryone (message)")
+		else TriggerClientEvent('chatMessage', source, '', { 0, 0x99, 255 }, "^1" .. string.sub(fullcommand, string.len(command[1]) + 1))
+	end
+----------------------------------------------------------------------------------------------------------------------------------------
 	else TriggerClientEvent('chatMessage', source, 'Server', { 0, 0x99, 255 }, "^1Sorry, but we don't know that command.")
 	end
 end)
@@ -143,7 +159,7 @@ end)
 function startswith(sbig, slittle)
   if type(slittle) == "table" then
     for k,v in ipairs(slittle) do
-      if string.sub(sbig, 1, string.len(v)) == v then
+      if string.sub(sbig, 1, string.len(v)) == v then 
         return true
       end
     end
@@ -159,17 +175,15 @@ function isNumber(str)
 	end
 end
 
---[[function string:split(delimiter)
-  local result = { }
-  local from  = 1
-  local delim_from, delim_to = string.find( self, delimiter, from  )
-  while delim_from do
-    table.insert( result, string.sub( self, from , delim_from-1 ) )
-    from  = delim_to + 1
-    delim_from, delim_to = string.find( self, delimiter, from  )
+function stringsplit(self, delimiter)
+  local a = self:Split(delimiter)
+  local t = {}
+
+  for i = 0, #a - 1 do
+     table.insert(t, a[i])
   end
-  table.insert( result, string.sub( self, from  ) )
-  return result
-end]]
+
+  return t
+end
 
 print("[GAME] Commandserv initialised")
