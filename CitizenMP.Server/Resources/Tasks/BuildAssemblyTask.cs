@@ -42,6 +42,8 @@ namespace CitizenMP.Server.Resources.Tasks
         public string Parameters { get; set; }
         public LoggerVerbosity Verbosity { get; set; }
 
+        private bool WasError { get; set; }
+
         public void Initialize(IEventSource eventSource)
         {
             eventSource.ProjectStarted += ProjectStarted;
@@ -59,6 +61,8 @@ namespace CitizenMP.Server.Resources.Tasks
         void ErrorRaised(object sender, BuildErrorEventArgs e)
         {
             this.Log().Error("{0} in {1}({2},{3})", e.Message, e.File, e.LineNumber, e.ColumnNumber);
+
+            WasError = true;
         }
 
         void TaskFinished(object sender, TaskFinishedEventArgs e)
@@ -83,7 +87,16 @@ namespace CitizenMP.Server.Resources.Tasks
 
         void MessageRaised(object sender, BuildMessageEventArgs e)
         {
-            this.Log().Debug("{0}", e.Message);
+            if (!WasError)
+            {
+                this.Log().Debug("{0}", e.Message);
+            }
+            else
+            {
+                this.Log().Error("{0}", e.Message);
+
+                WasError = false;
+            }
         }
 
         void WarningRaised(object sender, BuildWarningEventArgs e)
@@ -112,14 +125,18 @@ namespace CitizenMP.Server.Resources.Tasks
         }
         #endregion
 
+        private static object _compileLock = new object();
+
         public override async Task<bool> Process(Resource resource)
         {
             var solution = Path.Combine(resource.Path, resource.Info["clr_solution"]);
 
+            // set global properties
             var globalProperties = new Dictionary<string, string>();
             globalProperties["Configuration"] = "Release";
-            globalProperties["OutputPath"] = Path.GetFullPath(Path.Combine("cache/resource_bin", resource.Name));
+            globalProperties["OutputPath"] = Path.GetFullPath(Path.Combine("cache/resource_bin", resource.Name)) + "/";
             globalProperties["IntermediateOutputPath"] = Path.GetFullPath(Path.Combine("cache/resource_obj", resource.Name)) + "/";
+            globalProperties["OutDir"] = globalProperties["OutputPath"]; // for Mono?
 
             try
             {
@@ -145,6 +162,9 @@ namespace CitizenMP.Server.Resources.Tasks
                 {
                     if (item.ItemType == "Reference")
                     {
+                        // remove existing hint paths
+                        item.Metadata.Where(a => a.Name == "HintPath").ToList().ForEach(a => item.RemoveChild(a));
+
                         item.AddMetadata("HintPath", getPath(item.Include));
                         item.AddMetadata("Private", "false");
                     }
@@ -155,36 +175,74 @@ namespace CitizenMP.Server.Resources.Tasks
                     { "HintPath", getPath("mscorlib") },
                     { "Private", "false" }
                 });
-                
+
                 // create an instance and build request
                 var projectInstance = new ProjectInstance(projectRoot, globalProperties, "4.0", ProjectCollection.GlobalProjectCollection);
-
                 var buildRequest = new BuildRequestData(projectInstance, new[] { "Build" }, null);
 
-                // set the build parameters
-                var buildParameters = new BuildParameters();
-                buildParameters.Loggers = new[] { this };
+                BuildSubmission buildSubmission = null;
 
-                BuildManager.DefaultBuildManager.BeginBuild(buildParameters);
+                // run this in a separate task
+                await Task.Run(() =>
+                {
+                    // building is mutually-exclusive thanks to MSBuild working directory affinity
+                    lock (_compileLock)
+                    {
+                        // set the working directory
+                        var oldDirectory = Environment.CurrentDirectory;
+                        Environment.CurrentDirectory = Path.GetFullPath(Path.GetDirectoryName(solution));
 
-                // create a build submission and execute
-                var buildSubmission = BuildManager.DefaultBuildManager.PendBuildRequest(buildRequest);
-                await buildSubmission.ExecuteAsync();
+                        // set the build parameters
+                        var buildParameters = new BuildParameters();
+                        buildParameters.Loggers = new[] { this };
 
-                // end building
-                BuildManager.DefaultBuildManager.EndBuild();
+                        BuildManager.DefaultBuildManager.BeginBuild(buildParameters);
+
+                        // create a build submission and execute
+                        buildSubmission = BuildManager.DefaultBuildManager.PendBuildRequest(buildRequest);
+                        buildSubmission.Execute();
+
+                        // end building
+                        BuildManager.DefaultBuildManager.EndBuild();
+
+                        // put the current directory back
+                        Environment.CurrentDirectory = oldDirectory;
+                    }
+                });
+
+                this.Log().Info("Build for {0} complete - result: {1}", resource.Name, buildSubmission.BuildResult.OverallResult);
 
                 var success = (buildSubmission.BuildResult.OverallResult == BuildResultCode.Success);
 
                 if (success)
                 {
-                    var buildResult = buildSubmission.BuildResult.ResultsByTarget["Build"];
+                    // the targets producing 'interesting' items (resource_bin/*.dll)
+                    var targetList = new[] { "Build", "CoreBuild" }; // CoreBuild is needed on Mono
 
-                    foreach (var item in buildResult.Items)
+                    // callback to run on each target
+                    Action<TargetResult> iterateResult = buildResult =>
                     {
-                        var baseName = Path.GetFileName(item.ItemSpec);
+                        if (buildResult.Items != null)
+                        {
+                            foreach (var item in buildResult.Items)
+                            {
+                                var baseName = Path.GetFileName(item.ItemSpec);
 
-                        resource.ExternalFiles[string.Format("bin/{0}", baseName)] = new FileInfo(item.ItemSpec);
+                                resource.ExternalFiles[string.Format("bin/{0}", baseName)] = new FileInfo(item.ItemSpec);
+                            }
+                        }
+                    };
+
+                    // loop through the targets
+                    foreach (var target in targetList)
+                    {
+                        TargetResult result;
+
+                        // if it's a resulting target
+                        if (buildSubmission.BuildResult.ResultsByTarget.TryGetValue(target, out result))
+                        {
+                            iterateResult(result);
+                        }
                     }
                 }
 
@@ -196,23 +254,6 @@ namespace CitizenMP.Server.Resources.Tasks
 
                 return false;
             }
-        }
-    }
-
-    // from http://blog.nerdbank.net/2011/07/c-await-for-msbuild.html
-    public static class BuildSubmissionAwaitExtensions
-    {
-        public static Task<BuildResult> ExecuteAsync(this BuildSubmission submission)
-        {
-            var tcs = new TaskCompletionSource<BuildResult>();
-            submission.ExecuteAsync(SetBuildComplete, tcs);
-            return tcs.Task;
-        }
-
-        private static void SetBuildComplete(BuildSubmission submission)
-        {
-            var tcs = (TaskCompletionSource<BuildResult>)submission.AsyncContext;
-            tcs.SetResult(submission.BuildResult);
         }
     }
 }
