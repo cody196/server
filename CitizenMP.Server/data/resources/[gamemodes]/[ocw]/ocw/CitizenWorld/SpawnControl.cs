@@ -15,9 +15,10 @@ namespace CitizenWorld
 
         public SpawnControl()
         {
-            EventHandlers["onClientGameTypeStart"] += new Action<string>(async resource =>
+            //EventHandlers["ocw:onPlayerSignedIn"] += new Action(async () =>
+            EventHandlers["onClientGameTypeStart"] += new Action<string>(async (a) =>
             {
-                var spawnPoints = await Data<SpawnPoint>.GetAsync(new { PlayerGuid = new MetaField("playerGuid") });
+                /*var spawnPoints = await Data<SpawnPoint>.GetAsync(new { PlayerGuid = new MetaField("playerGuid") });
                 var spawnPoint = spawnPoints.FirstOrDefault();
 
                 if (spawnPoint == null)
@@ -32,14 +33,32 @@ namespace CitizenWorld
                     var res = await spawnPoint.SaveAsync();
 
                     Debug.WriteLine("new spawn res {0}", res);
-                }
+                }*/
+
+                var spawnPoint = new SpawnPoint();
+                spawnPoint.SpawnPositionX = 21.001f;
+                spawnPoint.SpawnPositionY = -40.001f;
+                spawnPoint.SpawnPositionZ = 15.001f;
 
                 m_localSpawnPoint = spawnPoint;
 
                 Exports["spawnmanager"].spawnPlayer(new
                 {
-                    x = spawnPoint.SpawnPositionX, y = spawnPoint.SpawnPositionY, z = spawnPoint.SpawnPositionZ, heading = 0.0f
+                    x = spawnPoint.SpawnPositionX,
+                    y = spawnPoint.SpawnPositionY,
+                    z = spawnPoint.SpawnPositionZ,
+                    heading = 0.0f,
+                    model = 1343144208
                 });
+
+                /*Exports["spawnmanager"].addSpawnPoint(new
+                {
+                    x = 21.001f, y = -40.001f, z = 15.001f, model = "ig_brucie", heading = 0.1f
+                });
+
+                Exports["spawnmanager"].setAutoSpawn(true);
+
+                Exports["spawnmanager"].forceRespawn();*/
             });
 
             // respawning
@@ -57,7 +76,7 @@ namespace CitizenWorld
             });
 
             // saving last on-foot location
-            Tick += SpawnControl_Tick;
+            //Tick += SpawnControl_Tick;
         }
 
         async Task SpawnControl_Tick()

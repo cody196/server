@@ -44,9 +44,13 @@
     <Compile Include="DAL\DataManager.cs" />
     <Compile Include="DAL\DataObject.cs" />
     <Compile Include="DAL\MetaField.cs" />
+    <Compile Include="EntityManager.cs" />
     <Compile Include="JobManager.cs" />
+    <Compile Include="ObjectiveControl.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpawnControl.cs" />
+    <Compile Include="TeamSelection.cs" />
+    <Compile Include="VariableSpace.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

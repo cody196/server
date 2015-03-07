@@ -137,7 +137,7 @@ function DAL.Schema(schemaName)
 			end
 		end
 
-		if #schema.queryChecks > 0 and #where > 0 then
+		if #schema.queryChecks > 0 and #where > 0 and source ~= -1 then
 			local q = {}
 			q[where[1]] = where[2]
 
@@ -176,18 +176,62 @@ function DAL.Schema(schemaName)
 				table.insert(rows, row.doc)
 			end
 
-			TriggerClientEvent(retEventName, lsource, {
-				version = 1,
-				queryId = query.id,
-				data = rows
-			})
+			if lsource ~= -1 then
+				TriggerClientEvent(retEventName, lsource, {
+					version = 1,
+					queryId = query.id,
+					data = rows
+				})
+			else
+				TriggerEvent(retEventName, {
+					version = 1,
+					queryId = query.id,
+					data = rows
+				})
+			end
 
 			print('returned properly and safely to ' .. GetPlayerName(lsource))
 		end, subUrl)
 	end)
 
+	-- private event
+	local retCallbacks = {}
+	local retId = 0
+
+	AddEventHandler(retEventName, function(object)
+		if object.version ~= 1 then
+			return
+		end
+
+		local cb = retCallbacks[object.queryId]
+
+		if cb then
+			cb(object.data)
+
+			retCallbacks[object.queryId] = nil
+		end
+	end)
+
+	function schema.Query(where, cb)
+		local internalId = retId
+
+		retCallbacks[internalId] = cb
+
+		retId = retId + 1
+
+		TriggerEvent(getEventName, {
+			version = 1,
+			where = where,
+			id = internalId
+		})
+	end
+
 	function schema.Index(field)
 		dbcall('GET', schemaName, function(code, data)
+			if code ~= 0 then
+				data = {}
+			end
+
 			if code ~= 0 or not data.version or data.version ~= 1 then
 				dbcall('PUT', schemaName, function(code, data)
 					if code ~= 0 then
