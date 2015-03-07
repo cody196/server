@@ -903,6 +903,56 @@ namespace CitizenMP.Server.Game
             SendOutOfBand(m_serverList, "heartbeat DarkPlaces\n");
         }
 
+        private DateTime? m_platformConnectingTime;
+        private bool m_reconnecting;
+
+        private void CheckPlatformDisconnect()
+        {
+            // marker to signify disconnect
+            if (m_platformClient.LoginId == 0)
+            {
+                if (!m_reconnecting)
+                {
+                    if (m_platformConnectingTime == null || (DateTime.UtcNow - m_platformConnectingTime.Value).TotalSeconds > 5)
+                    {
+                        this.Log().Warn("Disconnected from Terminal - reconnecting...");
+
+                        m_reconnecting = true;
+
+                        Task.Run(() =>
+                        {
+                            if (m_platformClient.Connect())
+                            {
+                                this.Log().Warn("Authenticating to Terminal during reconnect.");
+
+                                m_platformClient.AuthenticateWithLicenseKey("").ContinueWith(success =>
+                                {
+                                    m_platformConnectingTime = null;
+                                    m_reconnecting = false;
+
+                                    this.Log().Warn("Terminal reauthentication complete!");
+                                });
+                            }
+                            else
+                            {
+                                this.Log().Warn("Reconnecting to Terminal failed.");
+
+                                // throw an exception for capture in the continuation
+                                throw new Exception("Failed to connect to Terminal");
+                            }
+                        }).ContinueWith(task =>
+                        {
+                            if (task.Exception != null)
+                            {
+                                m_platformConnectingTime = DateTime.UtcNow;
+                                m_reconnecting = false;
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
         private void ProcessServerFrame()
         {
             // process client timeouts
@@ -938,6 +988,8 @@ namespace CitizenMP.Server.Game
             }
 
             ResourceManager.Tick();
+
+            CheckPlatformDisconnect();
 
             // and then just send reliable buffers
             foreach (var client in ClientInstances.Clients)
