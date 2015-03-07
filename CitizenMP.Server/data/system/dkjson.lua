@@ -269,7 +269,7 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
     if not ret then return exception('custom encoder failed', value, state, buffer, buflen, msg) end
     tables[value] = nil
     buflen = appendcustom(ret, buffer, state)
-  elseif value == nil then
+  elseif valtype == 'nil' then
     buflen = buflen + 1
     buffer[buflen] = "null"
   elseif valtype == 'number' then

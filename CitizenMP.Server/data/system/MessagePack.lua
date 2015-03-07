@@ -36,6 +36,31 @@ local function hexadump (s)
 end
 --]]
 
+local function utf8_to_utf16(s)
+    local utf8 = clr.System.Text.Encoding.UTF8
+    local bytes : byte[] = clr.System.Byte[#s]
+
+    for i = 0, #s - 1 do
+        bytes[i] = string.byte(s, i + 1)
+    end
+
+    return utf8:GetString(bytes)
+end
+
+local function utf16_to_utf8(s)
+    local utf8 = clr.System.Text.Encoding.UTF8
+    local StringBuilder = clr.System.Text.StringBuilder
+    local bytes = utf8:GetBytes(s)
+
+    local sb = StringBuilder(bytes.Length)
+
+    for i = 0, bytes.Length - 1 do
+        sb:Append(cast(char, bytes[i]))
+    end
+
+    return sb:ToString()
+end
+
 local m = {}
 
 --[[ debug only
@@ -76,6 +101,8 @@ packers['boolean'] = function (buffer, bool)
 end
 
 packers['string_compat'] = function (buffer, str)
+    str = utf16_to_utf8(str)
+
     local n = #str
     if n <= 0x1F then
         buffer[#buffer+1] = char(0xA0 + n)      -- fixstr
@@ -96,6 +123,8 @@ packers['string_compat'] = function (buffer, str)
 end
 
 packers['_string'] = function (buffer, str)
+    str = utf16_to_utf8(str)
+
     local n = #str
     if n <= 0x1F then
         buffer[#buffer+1] = char(0xA0 + n)      -- fixstr
@@ -119,6 +148,8 @@ packers['_string'] = function (buffer, str)
 end
 
 packers['binary'] = function (buffer, str)
+    str = utf16_to_utf8(str)
+
     local n = #str
     if n <= 0xFF then
         buffer[#buffer+1] = char(0xC4,          -- bin8
@@ -808,7 +839,7 @@ unpackers['fixstr'] = function (c, val)
         e = i+n-1
     end
     c.i = i+n
-    return s:sub(i, e)
+    return utf8_to_utf16(s:sub(i, e))
 end
 
 unpackers['str8'] = function (c)
@@ -827,7 +858,7 @@ unpackers['str8'] = function (c)
         e = i+n-1
     end
     c.i = i+n
-    return s:sub(i, e)
+    return utf8_to_utf16(s:sub(i, e))
 end
 
 unpackers['str16'] = function (c)
@@ -848,7 +879,7 @@ unpackers['str16'] = function (c)
         e = i+n-1
     end
     c.i = i+n
-    return s:sub(i, e)
+    return utf8_to_utf16(s:sub(i, e))
 end
 
 unpackers['str32'] = function (c)
@@ -868,7 +899,7 @@ unpackers['str32'] = function (c)
         e = i+n-1
     end
     c.i = i+n
-    return s:sub(i, e)
+    return utf8_to_utf16(s:sub(i, e))
 end
 
 unpackers['bin8'] = unpackers['str8']
