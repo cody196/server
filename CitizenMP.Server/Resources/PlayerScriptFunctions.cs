@@ -48,7 +48,39 @@ namespace CitizenMP.Server.Resources
 
             if (player != null)
             {
-                return player.Guid.PadLeft(16, '0');
+                var identifier = player.Identifiers.FirstOrDefault();
+
+                player.Log().Warn("Using GetPlayerGuid is deprecated - with NPv2 authentication a client can have multiple identifiers. Please use a 'in'-style match on GetPlayerIdentifiers()'s result instead.");
+
+                if (identifier == null)
+                {
+                    identifier = player.Guid.PadLeft(16, '0');
+                }
+
+                return identifier;
+            }
+
+            return null;
+        }
+
+        [LuaMember("GetPlayerIdentifiers")]
+        static LuaTable GetPlayerIdentifiers(int source)
+        {
+            var player = FindPlayer(source);
+
+            if (player != null)
+            {
+                var table = new LuaTable();
+                var i = 1;
+
+                foreach (var identifier in player.Identifiers)
+                {
+                    table[i] = identifier;
+
+                    i++;
+                }
+
+                return table;
             }
 
             return null;

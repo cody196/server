@@ -525,12 +525,14 @@ namespace CitizenMP.Server.Resources
                     {
                         this.Log().Error(() => "Error executing event handler for event " + eventName + " in resource " + m_resource.Name + ": " + e.Message, e);
 
+                        PrintLuaStackTrace(e);
+
                         if (e.InnerException != null)
                         {
                             this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
-                        }
 
-                        PrintLuaStackTrace(e);
+                            PrintLuaStackTrace(e.InnerException);
+                        }
 
                         Game.RconPrint.Print("Error in resource {0}: {1}\n", m_resource.Name, e.Message);
 

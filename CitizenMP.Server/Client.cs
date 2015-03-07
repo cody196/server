@@ -45,6 +45,8 @@ namespace CitizenMP.Server
 
         public int Ping { get; private set; }
 
+        public IEnumerable<string> Identifiers { get; set; }
+
         public Client()
         {
             OutReliableCommands = new List<OutReliableCommand>();

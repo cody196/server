@@ -78,7 +78,7 @@ namespace CitizenMP.Server.Resources
                 {
                     this.Log().Error("Resource {0} caused an error during loading. Please see the above lines for details.", Name);
 
-                    State = ResourceState.Error;
+                    State = ResourceState.Stopped;
                     return false;
                 }
             }
@@ -137,7 +137,7 @@ namespace CitizenMP.Server.Resources
                 {
                     this.Log().Error("Executing tasks for resource {0} failed.", Name);
 
-                    State = ResourceState.Error;
+                    State = ResourceState.Stopped;
                     return false;
                 }
 

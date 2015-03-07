@@ -58,6 +58,8 @@ namespace CitizenMP.Server.HTTP
                     }
                 }
 
+                IEnumerable<string> clientIdentifiers;
+
                 // authentication
                 if (!gameServer.Configuration.DisableAuth)
                 {
@@ -79,18 +81,26 @@ namespace CitizenMP.Server.HTTP
 
                     var authResult = await gameServer.PlatformClient.ValidateTicket(validationAddress, ulong.Parse(guid), new NPSharp.RPC.Messages.Data.Ticket(Convert.FromBase64String(authTicket)));
 
-                    if (!authResult)
+                    if (!authResult.IsValid)
                     {
                         result["error"] = "Invalid NPID sent.";
 
                         return result;
                     }
+
+                    clientIdentifiers = authResult.Identifiers;
+                }
+                else
+                {
+                    // as there's no other authentication source, we'd guess
+                    clientIdentifiers = new[] { string.Format("ip:{0}", ((IPEndPoint)context.RemoteEndPoint).Address) };
                 }
 
                 var client = new Client();
                 client.Token = TokenGenerator.GenerateToken();
                 client.Name = name;
                 client.Guid = ulong.Parse(guid).ToString("x16");
+                client.Identifiers = clientIdentifiers;
                 client.ProtocolVersion = protocolNum;
                 client.Touch();
 

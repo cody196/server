@@ -14,7 +14,7 @@ namespace CitizenMP.Server.Game
 {
     class GameServer
     {
-        public const uint PROTOCOL_VERSION = 2;
+        public const uint PROTOCOL_VERSION = 3;
 
         private Socket m_gameSocket;
 
@@ -962,6 +962,12 @@ namespace CitizenMP.Server.Game
                         {
                             writer.Write(0x53FFFA3F); // 'msgFrame'
                             writer.Write(client.Value.FrameNumber);
+
+                            // write ping for protocol 3+ clients
+                            if (cl.ProtocolVersion >= 3)
+                            {
+                                writer.Write(client.Value.Ping);
+                            }
 
                             client.Value.Frames[client.Value.FrameNumber % client.Value.Frames.Length].SentTime = Time.CurrentTime;
                             client.Value.Frames[client.Value.FrameNumber % client.Value.Frames.Length].AckedTime = -1;

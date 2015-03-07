@@ -246,6 +246,9 @@ namespace CitizenMP.Server.Resources.Tasks
                     }
                 }
 
+                // unload the project so it will not get cached
+                ProjectCollection.GlobalProjectCollection.UnloadProject(projectRoot);
+
                 return success;
             }
             catch (Exception e)
