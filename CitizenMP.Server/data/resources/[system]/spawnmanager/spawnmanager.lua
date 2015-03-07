@@ -23,6 +23,10 @@ AddEventHandler('getMapDirectives', function(add)
                 z = opts[3]
             end
 
+            x = x + 0.0001
+            y = y + 0.0001
+            z = z + 0.0001
+
             -- get a heading and force it to a float, or just default to null
             heading = opts.heading and (opts.heading + 0.01) or 0
 
@@ -189,6 +193,8 @@ function spawnPlayer(spawnIdx, cb)
 
         -- if the spawn has a model set
         if spawn.model then
+            RequestModel(spawn.model)
+
             -- load the model for this spawn
             while not HasModelLoaded(spawn.model) do
                 RequestModel(spawn.model)
