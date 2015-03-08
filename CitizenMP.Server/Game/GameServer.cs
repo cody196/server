@@ -301,6 +301,18 @@ namespace CitizenMP.Server.Game
                 SendOutOfBand(remoteEP, "connectOK {0} {1} {2}", client.NetID, (m_host != null) ? m_host.NetID : -1, (m_host != null) ? m_host.Base : -1);
 
                 m_nextHeartbeatTime = m_serverTime + 500;
+
+                // send an event containing the player name and such to connected players (not script, yet at least)
+                TriggerClientEvent("onPlayerJoining", -1, client.NetID, client.Name);
+
+                // and send the same event containing all *other* clients we know to this client
+                foreach (var secondaryClient in ClientInstances.Clients)
+                {
+                    if (secondaryClient.Value.NetID != client.NetID)
+                    {
+                        TriggerClientEvent("onPlayerJoining", client.NetID, secondaryClient.Value.NetID, secondaryClient.Value.Name);
+                    }
+                }
             }
         }
 
