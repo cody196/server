@@ -15,6 +15,12 @@ namespace CitizenMP.Server.Formats
 
         public byte[] FileData { get; private set; }
 
+        public bool IsResource { get; private set; }
+
+        public uint ResourceFlags { get; private set; }
+
+        public byte ResourceVersion { get; set; }
+
         public RPFEntry()
         {
             m_subEntries = new List<RPFEntry>();
@@ -25,6 +31,14 @@ namespace CitizenMP.Server.Formats
         {
             Name = name;
             FileData = data;
+
+            if (data.Length >= 4 && data[0] == 'R' && data[1] == 'S' && data[2] == 'C')
+            {
+                IsResource = true;
+
+                ResourceVersion = data[4];
+                ResourceFlags = BitConverter.ToUInt32(data, 8);
+            }
         }
 
         public RPFEntry(string name, bool isDirectory)
@@ -36,11 +50,6 @@ namespace CitizenMP.Server.Formats
 
         public void AddFile(string name, byte[] data)
         {
-            if (data.Length >= 4 && data[0] == 'R' && data[1] == 'S' && data[2] == 'C')
-            {
-                throw new InvalidOperationException("Resource files are currently not supported.");
-            }
-
             var pathParts = new Queue<string>(name.Split(new[] { "/" }, StringSplitOptions.RemoveEmptyEntries));
 
             if (pathParts.Count == 1)
@@ -97,7 +106,14 @@ namespace CitizenMP.Server.Formats
                     writer.Mark("fOff_" + Name); // also should contain the resource type
                     writer.Write(0);
 
-                    writer.Write(FileData.Length); // no flags, but apparently size?
+                    if (!IsResource)
+                    {
+                        writer.Write(FileData.Length); // no flags, but apparently size?
+                    }
+                    else
+                    {
+                        writer.Write(ResourceFlags);
+                    }
                 }
                 else
                 {
@@ -159,7 +175,7 @@ namespace CitizenMP.Server.Formats
         {
             if (!IsDirectory)
             {
-                writer.WriteMark("fOff_" + Name, (uint)writer.BaseStream.Position & 0xffffff00);
+                writer.WriteMark("fOff_" + Name, ((uint)writer.BaseStream.Position & 0xffffff00) | ResourceVersion);
 
                 writer.Write(FileData);
 
