@@ -24,7 +24,14 @@ end)
 AddEventHandler('chatMessage', function(source, name, message)
 	print('hey there ' .. name)
 
-	client:SendMessage('[' .. tostring(GetPlayerName(source)) .. ']: ' .. gsub(message, '^%d', ''), '#fourdeltaone')
+	local displayMessage = gsub(message, '^%d', '')
+
+	-- ignore chat messages that are actually commands
+	if string.sub(displayMessage, 1, 1) == "/" then
+		return
+	end
+
+	client:SendMessage('[' .. tostring(GetPlayerName(source)) .. ']: ' .. displayMessage, '#fourdeltaone')
 end)
 
 client:ConnectAsync()
