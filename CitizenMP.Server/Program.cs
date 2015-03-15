@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+using CitizenMP.Server.Logging;
 using NPSharp.NP;
 
 namespace CitizenMP.Server
@@ -18,6 +19,12 @@ namespace CitizenMP.Server
             try
             {
                 config = Configuration.Load(configFileName ?? "citmp-server.yml");
+
+                // if running on WinNT default to using windowed logger
+                if (Environment.OSVersion.Platform == PlatformID.Win32NT && !config.DisableWindowedLogger)
+                {
+                    WindowedLogger.Initialize();
+                }
 
                 if (config.AutoStartResources == null)
                 {
@@ -147,13 +154,7 @@ namespace CitizenMP.Server
 
         static void Main(string[] args)
         {
-            // if running on WinNT
-            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-            {
-                Logging.WindowedLogger.Initialize();
-            }
-
-            Logging.BaseLog.SetStripSourceFilePath();
+            BaseLog.SetStripSourceFilePath();
 
             Time.Initialize();
 
