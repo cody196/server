@@ -94,7 +94,15 @@ namespace CitizenMP.Server.Resources
                     return null;
                 }
 
-                return func.DynamicInvoke(args.Skip(1).Take(func.Method.GetParameters().Length - 1).ToArray());
+                var methodParameters = func.Method.GetParameters();
+                var localArgs = args.Skip(1);
+
+                if (methodParameters.Length >= 1 && methodParameters.Last().ParameterType == typeof(LuaTable))
+                {
+                    localArgs = localArgs.Take(methodParameters.Length - 1);
+                }
+
+                return func.DynamicInvoke(localArgs.ToArray());
             };
 
             var table = new LuaTable();

@@ -519,7 +519,15 @@ namespace CitizenMP.Server.Resources
                 {
                     try
                     {
-                        handler.DynamicInvoke(args.Take(handler.Method.GetParameters().Length - 1).ToArray());
+                        var methodParameters = handler.Method.GetParameters();
+                        var localArgs = args;
+
+                        if (methodParameters.Length >= 1 && methodParameters.Last().ParameterType == typeof(LuaTable))
+                        {
+                            localArgs = args.Take(methodParameters.Length - 1).ToArray();
+                        }
+
+                        handler.DynamicInvoke(localArgs);
                     }
                     catch (Exception e)
                     {
