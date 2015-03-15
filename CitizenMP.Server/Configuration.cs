@@ -58,6 +58,8 @@ namespace CitizenMP.Server
 
             return null;
         }
+
+        public bool DisableWindowedLogger { get; set; }
     }
 
     public class DownloadConfiguration
