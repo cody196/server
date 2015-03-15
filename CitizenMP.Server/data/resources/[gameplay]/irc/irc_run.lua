@@ -1,6 +1,6 @@
 local chatSharp = clr.ChatSharp
 
-local client = chatSharp.IrcClient('irc.rizon.net', chatSharp.IrcUser('mateyate', 'mateyate'), false)
+local client = chatSharp.IrcClient('irc.rizon.net', chatSharp.IrcUser('citimate', 'mateyate'), false)
 
 client.ConnectionComplete:add(function(s : object, e : System.EventArgs) : void
 	client:JoinChannel('#fourdeltaone')
