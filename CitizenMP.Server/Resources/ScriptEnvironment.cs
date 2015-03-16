@@ -521,11 +521,14 @@ namespace CitizenMP.Server.Resources
                     {
                         var methodParameters = handler.Method.GetParameters();
                         var localArgs = args;
+                        int ignoreAppend = 0;
 
                         if (methodParameters.Length >= 1 && methodParameters.Last().ParameterType == typeof(LuaTable))
                         {
-                            localArgs = args.Take(methodParameters.Length - 1).ToArray();
+                            ignoreAppend = 1;
                         }
+
+                        localArgs = args.Take(methodParameters.Length - ignoreAppend).ToArray();
 
                         handler.DynamicInvoke(localArgs);
                     }
