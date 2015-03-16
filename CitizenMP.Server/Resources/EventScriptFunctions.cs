@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -99,12 +100,12 @@ namespace CitizenMP.Server.Resources
 
                 int ignoreAppend = 0;
 
-                if (methodParameters.Length >= 1 && methodParameters.Last().ParameterType == typeof(LuaTable))
+                if (methodParameters.Length >= 1 && (methodParameters.Last().ParameterType == typeof(LuaTable) || methodParameters.First().ParameterType == typeof(Closure)))
                 {
                     ignoreAppend = 1;
                 }
 
-                localArgs = args.Take(methodParameters.Length - ignoreAppend).ToArray();
+                localArgs = localArgs.Take(methodParameters.Length - ignoreAppend).ToArray();
 
                 return func.DynamicInvoke(localArgs.ToArray());
             };

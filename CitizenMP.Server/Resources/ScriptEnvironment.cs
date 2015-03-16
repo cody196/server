@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -523,29 +524,34 @@ namespace CitizenMP.Server.Resources
                         var localArgs = args;
                         int ignoreAppend = 0;
 
-                        if (methodParameters.Length >= 1 && methodParameters.Last().ParameterType == typeof(LuaTable))
+                        if (methodParameters.Length >= 1 && (methodParameters.Last().ParameterType == typeof(LuaTable) || methodParameters.First().ParameterType == typeof(Closure)))
                         {
                             ignoreAppend = 1;
                         }
 
-                        localArgs = args.Take(methodParameters.Length - ignoreAppend).ToArray();
+                        localArgs = localArgs.Take(methodParameters.Length - ignoreAppend).ToArray();
 
                         handler.DynamicInvoke(localArgs);
                     }
                     catch (Exception e)
                     {
+                        Game.RconPrint.Print("Error in resource {0}: {1}\n", m_resource.Name, e.Message);
+
                         this.Log().Error(() => "Error executing event handler for event " + eventName + " in resource " + m_resource.Name + ": " + e.Message, e);
 
                         PrintLuaStackTrace(e);
 
-                        if (e.InnerException != null)
+                        while (e != null)
                         {
-                            this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
+                            if (e.InnerException != null)
+                            {
+                                this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
 
-                            PrintLuaStackTrace(e.InnerException);
+                                PrintLuaStackTrace(e.InnerException);
+                            }
+
+                            e = e.InnerException;
                         }
-
-                        Game.RconPrint.Print("Error in resource {0}: {1}\n", m_resource.Name, e.Message);
 
                         eventHandlers.Clear();
 
