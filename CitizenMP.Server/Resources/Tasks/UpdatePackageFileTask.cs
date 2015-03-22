@@ -24,7 +24,7 @@ namespace CitizenMP.Server.Resources.Tasks
 
         private string GetRpfNameFor(Resource resource)
         {
-            return "cache/http-files/" + resource.Name + ".rpf";
+            return Path.Combine(Program.RootDirectory, "cache/http-files/" + resource.Name + ".rpf");
         }
 
         public override bool NeedsExecutionFor(Resource resource)

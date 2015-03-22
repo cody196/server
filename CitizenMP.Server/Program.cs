@@ -12,6 +12,8 @@ namespace CitizenMP.Server
 {
     class Program
     {
+        public static string RootDirectory { get; private set; }
+
         private async Task Start(string configFileName)
         {
             Configuration config;
@@ -160,6 +162,8 @@ namespace CitizenMP.Server
 
             try
             {
+                RootDirectory = Environment.CurrentDirectory;
+
                 // start the program
                 new Program().Start((args.Length > 0) ? args[0] : null).Wait();
 

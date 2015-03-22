@@ -18,6 +18,7 @@ namespace CitizenMP.Server.Resources
 
         private static Lua ms_luaState;
         private static ILuaDebug ms_luaDebug;
+        private static LuaCompileOptions ms_luaCompileOptions;
         private static List<KeyValuePair<string, MethodInfo>> ms_luaFunctions = new List<KeyValuePair<string, MethodInfo>>();
         //private static List<KeyValuePair<string, LuaNativeFunction>> ms_nativeFunctions = new List<KeyValuePair<string, LuaNativeFunction>>();
 
@@ -161,11 +162,14 @@ namespace CitizenMP.Server.Resources
                         ms_luaDebug = new LuaStackTraceDebugger();
                     }
 
+                    ms_luaCompileOptions = new LuaCompileOptions();
+                    ms_luaCompileOptions.DebugEngine = ms_luaDebug;
+
                     ms_initChunks = new []
                     {
-                        ms_luaState.CompileChunk("system/MessagePack.lua", ms_luaDebug),
-                        ms_luaState.CompileChunk("system/dkjson.lua", ms_luaDebug),
-                        ms_luaState.CompileChunk("system/resource_init.lua", ms_luaDebug)
+                        ms_luaState.CompileChunk("system/MessagePack.lua", ms_luaCompileOptions),
+                        ms_luaState.CompileChunk("system/dkjson.lua", ms_luaCompileOptions),
+                        ms_luaState.CompileChunk("system/resource_init.lua", ms_luaCompileOptions)
                     };
                 }
 
@@ -390,7 +394,7 @@ namespace CitizenMP.Server.Resources
                 {
                     lock (m_luaEnvironment)
                     {
-                        var chunk = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, script), ms_luaDebug);
+                        var chunk = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, script), ms_luaCompileOptions);
                         m_luaEnvironment.DoChunk(chunk);
                         m_curChunks.Add(chunk);
                     }
@@ -439,7 +443,7 @@ namespace CitizenMP.Server.Resources
 
                 lock (m_luaEnvironment)
                 {
-                    var initFunction = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, "__resource.lua"), ms_luaDebug);
+                    var initFunction = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, "__resource.lua"), ms_luaCompileOptions);
                     var initDelegate = new Func<LuaResult>(() => m_luaEnvironment.DoChunk(initFunction));
 
                     InitHandler.DynamicInvoke(initDelegate, preParse);
@@ -449,7 +453,7 @@ namespace CitizenMP.Server.Resources
                 {
                     foreach (var script in m_serverScripts)
                     {
-                        var chunk = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, script), ms_luaDebug);
+                        var chunk = ms_luaState.CompileChunk(Path.Combine(m_resource.Path, script), ms_luaCompileOptions);
                         m_luaEnvironment.DoChunk(chunk);
                         m_curChunks.Add(chunk);
                     }
@@ -486,85 +490,82 @@ namespace CitizenMP.Server.Resources
                 return;
             }
 
-            lock (m_luaEnvironment)
+            m_luaEnvironment["source"] = source;
+
+            var lastEnvironment = ms_currentEnvironment;
+            ms_currentEnvironment = this;
+
+            var oldLastEnvironment = LastEnvironment;
+            LastEnvironment = lastEnvironment;
+
+            //var unpacker = (Func<object, LuaResult>)((LuaTable)m_luaEnvironment["msgpack"])["unpack"];
+            //var table = unpacker(argsSerialized);
+
+            dynamic luaEnvironment = m_luaEnvironment;
+            LuaTable table = luaEnvironment.msgpack.unpack(argsSerialized);
+
+            var args = new object[0];
+
+            if (table != null)
             {
-                m_luaEnvironment["source"] = source;
+                args = new object[table.Length];
+                var i = 0;
 
-                var lastEnvironment = ms_currentEnvironment;
-                ms_currentEnvironment = this;
-
-                var oldLastEnvironment = LastEnvironment;
-                LastEnvironment = lastEnvironment;
-
-                //var unpacker = (Func<object, LuaResult>)((LuaTable)m_luaEnvironment["msgpack"])["unpack"];
-                //var table = unpacker(argsSerialized);
-
-                dynamic luaEnvironment = m_luaEnvironment;
-                LuaTable table = luaEnvironment.msgpack.unpack(argsSerialized);
-
-                var args = new object[0];
-
-                if (table != null)
+                foreach (var value in table)
                 {
-                    args = new object[table.Length];
-                    var i = 0;
-
-                    foreach (var value in table)
-                    {
-                        args[i] = value.Value;
-                        i++;
-                    }
+                    args[i] = value.Value;
+                    i++;
                 }
-
-                foreach (var handler in eventHandlers)
-                {
-                    try
-                    {
-                        var methodParameters = handler.Method.GetParameters();
-                        var localArgs = args;
-                        int ignoreAppend = 0;
-
-                        if (methodParameters.Length >= 1 && (methodParameters.Last().ParameterType == typeof(LuaTable) || methodParameters.First().ParameterType == typeof(Closure)))
-                        {
-                            ignoreAppend = 1;
-                        }
-
-                        localArgs = localArgs.Take(methodParameters.Length - ignoreAppend).ToArray();
-
-                        handler.DynamicInvoke(localArgs);
-                    }
-                    catch (Exception e)
-                    {
-                        Game.RconPrint.Print("Error in resource {0}: {1}\n", m_resource.Name, e.Message);
-
-                        this.Log().Error(() => "Error executing event handler for event " + eventName + " in resource " + m_resource.Name + ": " + e.Message, e);
-
-                        PrintLuaStackTrace(e);
-
-                        while (e != null)
-                        {
-                            if (e.InnerException != null)
-                            {
-                                this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
-
-                                PrintLuaStackTrace(e.InnerException);
-                            }
-
-                            e = e.InnerException;
-                        }
-
-                        eventHandlers.Clear();
-
-                        ms_currentEnvironment = lastEnvironment;
-                        LastEnvironment = oldLastEnvironment;
-
-                        return;
-                    }
-                }
-
-                ms_currentEnvironment = lastEnvironment;
-                LastEnvironment = oldLastEnvironment;
             }
+
+            foreach (var handler in eventHandlers)
+            {
+                try
+                {
+                    var methodParameters = handler.Method.GetParameters();
+                    var localArgs = args;
+                    int ignoreAppend = 0;
+
+                    if (methodParameters.Length >= 1 && (methodParameters.Last().ParameterType == typeof(LuaTable) || methodParameters.First().ParameterType == typeof(Closure)))
+                    {
+                        ignoreAppend = 1;
+                    }
+
+                    localArgs = localArgs.Take(methodParameters.Length - ignoreAppend).ToArray();
+
+                    handler.DynamicInvoke(localArgs);
+                }
+                catch (Exception e)
+                {
+                    Game.RconPrint.Print("Error in resource {0}: {1}\n", m_resource.Name, e.Message);
+
+                    this.Log().Error(() => "Error executing event handler for event " + eventName + " in resource " + m_resource.Name + ": " + e.Message, e);
+
+                    PrintLuaStackTrace(e);
+
+                    while (e != null)
+                    {
+                        if (e.InnerException != null)
+                        {
+                            this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
+
+                            PrintLuaStackTrace(e.InnerException);
+                        }
+
+                        e = e.InnerException;
+                    }
+
+                    eventHandlers.Clear();
+
+                    ms_currentEnvironment = lastEnvironment;
+                    LastEnvironment = oldLastEnvironment;
+
+                    return;
+                }
+            }
+
+            ms_currentEnvironment = lastEnvironment;
+            LastEnvironment = oldLastEnvironment;
         }
 
         private int m_referenceNum;
@@ -686,7 +687,23 @@ namespace CitizenMP.Server.Resources
                         var oldLastEnvironment = LastEnvironment;
                         LastEnvironment = lastEnvironment;
 
-                        timer.Function.DynamicInvoke();
+                        try
+                        {
+                            timer.Function.DynamicInvoke();
+                        }
+                        catch (Exception e)
+                        {
+                            this.Log().Error(() => "Error invoking timer in resource " + m_resource.Name + ": " + e.Message, e);
+
+                            PrintLuaStackTrace(e);
+
+                            if (e.InnerException != null)
+                            {
+                                this.Log().Error(() => "Inner exception: " + e.InnerException.Message, e.InnerException);
+
+                                PrintLuaStackTrace(e.InnerException);
+                            }
+                        }
 
                         ms_currentEnvironment = lastEnvironment;
                         LastEnvironment = oldLastEnvironment;

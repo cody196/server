@@ -58,26 +58,28 @@ namespace CitizenMP.Server.Resources.Tasks
             eventSource.ErrorRaised += ErrorRaised;
         }
 
+        private List<string> m_logDump = new List<string>();
+
         void ErrorRaised(object sender, BuildErrorEventArgs e)
         {
-            this.Log().Error("{0} in {1}({2},{3})", e.Message, e.File, e.LineNumber, e.ColumnNumber);
+            m_logDump.Add(string.Format("{0} in {1}({2},{3})", e.Message, e.File, e.LineNumber, e.ColumnNumber));
 
             WasError = true;
         }
 
         void TaskFinished(object sender, TaskFinishedEventArgs e)
         {
-            this.Log().Info("Finished task {0}.", e.TaskName);
+            m_logDump.Add(string.Format("Finished task {0}.", e.TaskName));
         }
 
         void ProjectFinished(object sender, ProjectFinishedEventArgs e)
         {
-            this.Log().Info("Finished build for project {0}.", e.ProjectFile);
+            m_logDump.Add(string.Format("Finished build for project {0}.", e.ProjectFile));
         }
 
         void TargetFinished(object sender, TargetFinishedEventArgs e)
         {
-            this.Log().Info("Finished build for target {0}.", e.TargetName);
+            m_logDump.Add(string.Format("Finished build for target {0}.", e.TargetName));
         }
 
         void StatusEventRaised(object sender, BuildStatusEventArgs e)
@@ -93,7 +95,7 @@ namespace CitizenMP.Server.Resources.Tasks
             }
             else
             {
-                this.Log().Error("{0}", e.Message);
+                m_logDump.Add(string.Format("{0}", e.Message));
 
                 WasError = false;
             }
@@ -101,22 +103,22 @@ namespace CitizenMP.Server.Resources.Tasks
 
         void WarningRaised(object sender, BuildWarningEventArgs e)
         {
-            this.Log().Warn("{0} in {1}({2},{3})", e.Message, e.File, e.LineNumber, e.ColumnNumber);
+            m_logDump.Add(string.Format("{0} in {1}({2},{3})", e.Message, e.File, e.LineNumber, e.ColumnNumber));
         }
 
         void TaskStarted(object sender, TaskStartedEventArgs e)
         {
-            this.Log().Info("Started task {0} - {1}.", e.TaskName, e.Message);
+            m_logDump.Add(string.Format("Started task {0} - {1}.", e.TaskName, e.Message));
         }
 
         void TargetStarted(object sender, TargetStartedEventArgs e)
         {
-            this.Log().Info("Started build for target {0}.", e.TargetName);
+            m_logDump.Add(string.Format("Started build for target {0}.", e.TargetName));
         }
 
         void ProjectStarted(object sender, ProjectStartedEventArgs e)
         {
-            this.Log().Info("Started build for project {0}.", e.ProjectFile);
+            m_logDump.Add(string.Format("Started build for project {0}.", e.ProjectFile));
         }
 
         public void Shutdown()
@@ -134,8 +136,8 @@ namespace CitizenMP.Server.Resources.Tasks
             // set global properties
             var globalProperties = new Dictionary<string, string>();
             globalProperties["Configuration"] = "Release";
-            globalProperties["OutputPath"] = Path.GetFullPath(Path.Combine("cache/resource_bin", resource.Name)) + "/";
-            globalProperties["IntermediateOutputPath"] = Path.GetFullPath(Path.Combine("cache/resource_obj", resource.Name)) + "/";
+            globalProperties["OutputPath"] = Path.GetFullPath(Path.Combine(Path.Combine(Program.RootDirectory, "cache/resource_bin"), resource.Name)) + "/";
+            globalProperties["IntermediateOutputPath"] = Path.GetFullPath(Path.Combine(Path.Combine(Program.RootDirectory, "cache/resource_obj"), resource.Name)) + "/";
             globalProperties["OutDir"] = globalProperties["OutputPath"]; // for Mono?
 
             try
@@ -156,7 +158,7 @@ namespace CitizenMP.Server.Resources.Tasks
                 projectRoot.AddProperty("NoStdLib", "true");
 
                 // add hint paths for all references
-                Func<string, string> getPath = a => Path.GetFullPath(Path.Combine("system/clrcore", a + ".dll"));
+                Func<string, string> getPath = a => Path.GetFullPath(Path.Combine(Path.Combine(Program.RootDirectory, "system/clrcore"), a + ".dll"));
 
                 foreach (var item in projectRoot.Items)
                 {
@@ -245,6 +247,15 @@ namespace CitizenMP.Server.Resources.Tasks
                         }
                     }
                 }
+                else
+                {
+                    foreach (var logItem in m_logDump)
+                    {
+                        this.Log().Error(logItem);
+                    }
+                }
+
+                m_logDump.Clear();
 
                 // unload the project so it will not get cached
                 ProjectCollection.GlobalProjectCollection.UnloadProject(projectRoot);

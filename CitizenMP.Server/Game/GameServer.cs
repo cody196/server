@@ -974,7 +974,7 @@ namespace CitizenMP.Server.Game
 
             foreach (var client in ClientInstances.Clients)
             {
-                var timeout = (client.Value.SentData) ? 15 : 60;
+                var timeout = (client.Value.SentData) ? 15 : 90;
 
                 timeout *= 1000;
 

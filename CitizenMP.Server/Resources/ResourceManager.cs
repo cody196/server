@@ -62,7 +62,7 @@ namespace CitizenMP.Server.Resources
                 return null;
             }
 
-            var res = new Resource(name, path);
+            var res = new Resource(name, Path.Combine(Environment.CurrentDirectory, path));
             res.Manager = this;
             res.DownloadConfiguration = m_configuration.GetDownloadConfiguration(name);
 

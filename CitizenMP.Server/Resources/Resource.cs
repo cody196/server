@@ -193,6 +193,9 @@ namespace CitizenMP.Server.Resources
                 return false;
             }
 
+            // log that we started
+            this.Log().Info("Started resource {0}.", Name);
+
             // broadcast to current clients
             var clients = ClientInstances.Clients.Where(c => c.Value.NetChannel != null).Select(c => c.Value);
 

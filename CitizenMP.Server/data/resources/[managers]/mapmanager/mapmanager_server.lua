@@ -175,7 +175,7 @@ AddEventHandler('rconCommand', function(commandName, args)
             return
         end
 
-        if not doesMapSupportGameType(currentGameType, args[1]) then
+        if currentGameType == nil or not doesMapSupportGameType(currentGameType, args[1]) then
             local map = maps[args[1]]
             local count = 0
             local gt
