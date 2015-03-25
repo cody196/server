@@ -38,14 +38,17 @@ namespace CitizenMP.Server.Logging
             var target = new MethodCallTarget();
             target.ClassName = typeof(WindowedLogger).AssemblyQualifiedName;
             target.MethodName = "LogOne";
+
+            string outputFormat;
             if (!debugLog)
             {
-                target.Parameters.Add(new MethodCallParameter("${level}: ${message}")); //  ${mdc:item=typeName}::${mdc:item=memberName}:
+                outputFormat = "${level}: ${message}";
             }
             else
             {
-                target.Parameters.Add(new MethodCallParameter("${mdc:item=sourceFile}(${mdc:item=sourceLine}): ${level}: ${mdc:item=typeName}::${mdc:item=memberName}: ${message}"));
+                outputFormat = "${mdc:item=sourceFile}(${mdc:item=sourceLine}): ${level}: ${mdc:item=typeName}::${mdc:item=memberName}: ${message}";
             }
+            target.Parameters.Add(new MethodCallParameter(outputFormat));
 
             //NLog.Config.SimpleConfigurator.ConfigureForTargetLogging(target, LogLevel.Info);
             config.AddTarget("window", target);
