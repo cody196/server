@@ -1,3 +1,0 @@
-files {
-    'dummy.dat'
-}
