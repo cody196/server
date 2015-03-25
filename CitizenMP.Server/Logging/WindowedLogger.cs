@@ -16,7 +16,7 @@ namespace CitizenMP.Server.Logging
 {
     static class WindowedLogger
     {
-        public static void Initialize()
+        public static void Initialize(bool debugLog)
         {
             // final bet to be WinNT
             if (Environment.OSVersion.Platform != PlatformID.Win32NT)
@@ -38,7 +38,17 @@ namespace CitizenMP.Server.Logging
             var target = new MethodCallTarget();
             target.ClassName = typeof(WindowedLogger).AssemblyQualifiedName;
             target.MethodName = "LogOne";
-            target.Parameters.Add(new MethodCallParameter("${mdc:item=sourceFile}(${mdc:item=sourceLine}): ${level}: ${mdc:item=typeName}::${mdc:item=memberName}: ${message}"));
+
+            string outputFormat;
+            if (!debugLog)
+            {
+                outputFormat = "${level}: ${message}";
+            }
+            else
+            {
+                outputFormat = "${mdc:item=sourceFile}(${mdc:item=sourceLine}): ${level}: ${mdc:item=typeName}::${mdc:item=memberName}: ${message}";
+            }
+            target.Parameters.Add(new MethodCallParameter(outputFormat));
 
             //NLog.Config.SimpleConfigurator.ConfigureForTargetLogging(target, LogLevel.Info);
             config.AddTarget("window", target);
