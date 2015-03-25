@@ -16,7 +16,7 @@ namespace CitizenMP.Server.Logging
 {
     static class WindowedLogger
     {
-        public static void Initialize(bool DebugLog)
+        public static void Initialize(bool debugLog)
         {
             // final bet to be WinNT
             if (Environment.OSVersion.Platform != PlatformID.Win32NT)
@@ -38,7 +38,7 @@ namespace CitizenMP.Server.Logging
             var target = new MethodCallTarget();
             target.ClassName = typeof(WindowedLogger).AssemblyQualifiedName;
             target.MethodName = "LogOne";
-            if (!DebugLog)
+            if (!debugLog)
             {
                 target.Parameters.Add(new MethodCallParameter("${level}: ${message}")); //  ${mdc:item=typeName}::${mdc:item=memberName}:
             }
