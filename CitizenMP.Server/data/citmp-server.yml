@@ -31,6 +31,8 @@ PlatformServer: iv-platform.prod.citizen.re
 
 ScriptDebug: true
 
+DebugLog: false
+
 # enjoy viiv
 Imports:
     - ConfigURL: http://cache.lilycove.hacks.re/exports.json

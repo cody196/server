@@ -25,7 +25,7 @@ namespace CitizenMP.Server
                 // if running on WinNT default to using windowed logger
                 if (Environment.OSVersion.Platform == PlatformID.Win32NT && !config.DisableWindowedLogger)
                 {
-                    WindowedLogger.Initialize();
+                    WindowedLogger.Initialize(config.DebugLog);
                 }
 
                 if (config.AutoStartResources == null)
