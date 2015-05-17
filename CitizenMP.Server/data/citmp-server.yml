@@ -17,7 +17,7 @@ AutoStartResources:
     - obituary
     - obituary-deaths
     #- race-test
-    - ocw
+    #- ocw
     #- play-midpa
     #- lovelier
     #- play-viiv
@@ -26,7 +26,7 @@ AutoStartResources:
 
 RconPassword: lovely
 
-Hostname: penis
+Hostname: why did this get committed
 
 PlatformServer: iv-platform.prod.citizen.re
 
