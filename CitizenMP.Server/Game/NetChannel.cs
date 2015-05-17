@@ -84,7 +84,7 @@ namespace CitizenMP.Server.Game
                 Array.Copy(buffer, 8, m_fragmentBuffer, fragmentBit * FRAGMENT_SIZE, length - 8);
                 m_fragmentLength += length - 8;
 
-                if (m_fragmentLength != FRAGMENT_SIZE)
+                if (fragmentLength != FRAGMENT_SIZE)
                 {
                     m_fragmentLastBit = fragmentBit;
                 }

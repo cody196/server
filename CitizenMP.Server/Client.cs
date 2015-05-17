@@ -144,7 +144,10 @@ namespace CitizenMP.Server
 
             try
             {
-                Socket.SendTo(buffer, RemoteEP);
+                lock (Socket)
+                {
+                    Socket.SendTo(buffer, RemoteEP);
+                }
             }
             catch (SocketException)
             { }

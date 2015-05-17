@@ -209,7 +209,7 @@ namespace CitizenMP.Server.Game
 
         string GetServerInfoString(string challenge)
         {
-            return string.Format("\\sv_maxclients\\32\\clients\\{0}\\challenge\\{1}\\gamename\\GTA4\\protocol\\2\\hostname\\{2}\\gametype\\{3}\\mapname\\{4}", ClientInstances.Clients.Count(cl => cl.Value.RemoteEP != null), challenge, m_configuration.Hostname ?? "CitizenMP", GameType ?? "", MapName ?? "");
+            return string.Format("\\sv_maxclients\\32\\clients\\{0}\\challenge\\{1}\\gamename\\GTA5\\protocol\\2\\hostname\\{2}\\gametype\\{3}\\mapname\\{4}", ClientInstances.Clients.Count(cl => cl.Value.RemoteEP != null), challenge, m_configuration.Hostname ?? "CitizenMP", GameType ?? "", MapName ?? "");
         }
 
         private Dictionary<IPEndPoint, int> m_lastRconTimes = new Dictionary<IPEndPoint, int>();
@@ -414,6 +414,12 @@ namespace CitizenMP.Server.Game
             var dataLength = reader.ReadUInt16();
             var data = reader.ReadBytes(dataLength);
 
+            if (data.Length != dataLength)
+            {
+                this.Log().Warn("Incomplete routing packet.");
+                return;
+            }
+
             var targetClientKV = ClientInstances.Clients.FirstOrDefault(c => c.Value.NetID == targetNetID);
 
             if (targetClientKV.Equals(default(KeyValuePair<string,Client>)))
@@ -438,6 +444,7 @@ namespace CitizenMP.Server.Game
                 writer.Write(dataLength);
                 writer.Write(data);
                 writer.Write(0xCA569E63);
+                writer.Flush();
 
                 //this.Log().Debug("routing {0}-byte packet to {1}", dataLength, targetNetID);
 
@@ -552,7 +559,7 @@ namespace CitizenMP.Server.Game
                     return;
                 }
 
-                var newBase = reader.ReadUInt16();
+                var newBase = reader.ReadInt32();
 
                 var clientCount = ClientInstances.Clients.Count(c => c.Value.SentData == true);
                 var votesNeeded = (clientCount > 0) ? ((clientCount / 3) + (((clientCount % 3) > 0) ? 1 : 0)) : 0;
@@ -1040,6 +1047,7 @@ namespace CitizenMP.Server.Game
                         }
 
                         writer.Write(0xCA569E63); // 'msgEnd'
+                        writer.Flush();
 
                         cl.NetChannel.Send(stream.ToArray());
                     }
