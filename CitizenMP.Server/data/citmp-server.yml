@@ -17,15 +17,16 @@ AutoStartResources:
     - obituary
     - obituary-deaths
     #- race-test
-    #- ocw
+    - ocw
     #- play-midpa
     #- lovelier
-    - play-viiv
-    - viiv-tdd
+    #- play-viiv
+    #- viiv-tdd
+    #- irc
 
 RconPassword: lovely
 
-Hostname: INTERNETWORKING DEVELOPMENT
+Hostname: penis
 
 PlatformServer: iv-platform.prod.citizen.re
 
