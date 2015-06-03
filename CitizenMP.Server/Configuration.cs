@@ -38,6 +38,8 @@ namespace CitizenMP.Server
 
         public string Hostname { get; set; }
 
+        public string Game { get; set; }
+
         public List<ImportConfiguration> Imports { get; set; }
 
         public Dictionary<string, DownloadConfiguration> Downloads { get; set; }
