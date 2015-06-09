@@ -28,6 +28,8 @@ RconPassword: lovely
 
 Hostname: why did this get committed
 
+Game: GTA5
+
 PlatformServer: iv-platform.prod.citizen.re
 
 ScriptDebug: true
